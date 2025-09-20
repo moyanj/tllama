@@ -14,6 +14,7 @@ pub enum Commands {
     List,
     #[cfg(feature = "chat")]
     Chat(ChatArgs),
+    Serve(ServeArgs),
 }
 
 #[derive(Parser, Debug)]
@@ -56,4 +57,15 @@ pub struct DiscoverArgs {
 #[derive(Parser, Debug)]
 pub struct ChatArgs {
     pub model: String,
+}
+
+#[derive(Parser, Debug)]
+pub struct ServeArgs {
+    pub model: String,
+    #[arg(long, default_value = "127.0.0.1")]
+    pub host: String,
+    #[arg(short, long, default_value_t = 8080)]
+    pub port: u16,
+    #[arg(long)]
+    pub system_prompt: Option<String>,
 }

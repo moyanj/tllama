@@ -1,3 +1,4 @@
+pub mod api;
 #[cfg(feature = "chat")]
 pub mod chat;
 pub mod cli;
