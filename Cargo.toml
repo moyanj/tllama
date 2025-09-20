@@ -8,7 +8,7 @@ name = "rllama"
 path = "src/lib.rs"
 
 [features]
-default = ["tpl-gotpl", "engine-llama-cpp"]
+default = ["tpl-gotpl", "engine-llama-cpp", "engine-hf"]
 tpl-gotpl = ["gotpl"]
 tpl-minijinja = ["minijinja"]
 hw-native = ["llama-cpp-2/native"]
@@ -16,7 +16,7 @@ hw-cuda = ["llama-cpp-2/cuda"]
 hw-metal = ["llama-cpp-2/metal"]
 hw-vulkan = ["llama-cpp-2/vulkan"]
 engine-llama-cpp = ["llama-cpp-2", "ggus"]
-engine-hf = ["pyo3", "safetensors"]
+engine-hf = ["pyo3"]
 
 [dependencies]
 clap = { version = "4.5.47", features = ["derive", "env"] }
@@ -27,7 +27,6 @@ llama-cpp-2 = { version = "0.1.121", default-features = false, features = [
     "openmp",
 ], optional = true }
 minijinja = { version = "0.22.0", optional = true }
-safetensors = { version = "0.6.2", optional = true }
 serde = { version = "1.0.225", features = ["derive"] }
 serde_json = "1.0.145"
 pyo3 = { version = "0.26.0", optional = true }
