@@ -4,7 +4,7 @@ use clap::Parser;
 use rllama::engine::{EngineConfig, InferenceEngine, llama_cpp::LlamaEngine};
 use rllama::template::*;
 use std::io::Write;
-
+/*
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = cli::Cli::parse();
 
@@ -48,4 +48,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("{}", result);
     }
     Ok(())
+}*/
+
+fn main() {
+    let mut discoverer = rllama::discover::MODEL_DISCOVERER.lock().unwrap();
+    discoverer.scan_all_paths();
+    discoverer.discover();
+    // 打印发现的模型
+    let models = discoverer.get_model_list();
+    println!("发现 {} 个模型:", models.len());
+    for model in models {
+        println!("- 名称: {}, 路径: {:?}", model.model_name, model.model_path);
+    }
 }

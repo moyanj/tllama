@@ -28,14 +28,21 @@ pub struct Model {
 }
 pub struct ModelDiscover {
     model_list: Vec<Model>,
+    scan_all_paths: bool,
 }
 
 impl ModelDiscover {
     pub fn new() -> Self {
         ModelDiscover {
             model_list: Vec::new(),
+            scan_all_paths: false,
         }
     }
+
+    pub fn scan_all_paths(&mut self) {
+        self.scan_all_paths = true;
+    }
+
     /// 核心方法：扫描所有已知路径并填充模型列表。
     pub fn discover(&mut self) {
         self.model_list.clear();
@@ -51,12 +58,22 @@ impl ModelDiscover {
                 .filter_map(Result::ok)
                 .filter(|e| e.file_type().is_file())
             {
-                println!("检查文件: {}", entry.path().display());
+                println!("Scanning file: {:?}", entry.path());
                 let full_path = entry.path();
-                if full_path.metadata().unwrap().len() < 5 * 1024 * 1024 {
-                    // 忽略小于 50MB 的文件
+                if self.check_exclude(&full_path) {
                     continue;
                 }
+
+                match full_path.metadata() {
+                    Ok(meta) => {
+                        if meta.len() < 50 * 1024 * 1024 {
+                            // 文件小于 50MB，跳过
+                            continue;
+                        }
+                    }
+                    Err(_) => continue,
+                }
+                println!("Checking file: {:?}", full_path);
                 if self.check_gguf_format(&full_path) {
                     self.model_list.push(Model {
                         model_name: full_path.file_stem().unwrap().to_string_lossy().to_string(),
@@ -216,8 +233,8 @@ impl ModelDiscover {
             let mut len_bytes = [0u8; 8];
             if let Ok(_) = file.read_exact(&mut len_bytes) {
                 let len = u64::from_le_bytes(len_bytes) as usize;
-                if len > 100 * 1024 * 1024 {
-                    // 元数据长度不应超过 100MB
+                if len > 50 * 1024 * 1024 {
+                    // 元数据长度不应超过 50MB
                     return false;
                 }
                 // 读取元数据
@@ -237,6 +254,25 @@ impl ModelDiscover {
 
     /// 构建一个包含所有潜在模型目录的列表
     pub fn make_search_paths(&self, check_existence: bool) -> Vec<PathBuf> {
+        if self.scan_all_paths {
+            #[cfg(unix)]
+            {
+                return vec![PathBuf::from("/")];
+            }
+            #[cfg(windows)]
+            {
+                // Windows 下扫描所有驱动器
+                let mut drives = Vec::new();
+                for letter in b'A'..=b'Z' {
+                    let drive = format!("{}:\\", letter as char);
+                    if Path::new(&drive).exists() {
+                        drives.push(PathBuf::from(drive));
+                    }
+                }
+                return drives;
+            }
+        }
+
         let mut paths = HashSet::new();
         if let Ok(rllama_paths_str) = env::var("RLLAMA_MODEL_PATHS") {
             for path_str in rllama_paths_str.split(',') {
@@ -280,6 +316,40 @@ impl ModelDiscover {
             final_paths
         }
     }
+
+    fn check_exclude(&self, path: &Path) -> bool {
+        if !self.scan_all_paths {
+            return false;
+        }
+        let uni_exclude_list = vec![".git", "node_modules", "venv", "__pycache__"];
+        #[cfg(target_os = "linux")]
+        let exclude_path = vec![
+            "/var", "/proc", "/run", "/sys", "/dev", "/lib", "/lib64", "/snap", "/boot",
+        ];
+        #[cfg(not(target_os = "linux"))]
+        let exclude_path = vec![
+            "C:\\Windows",
+            "C:\\Program Files",
+            "C:\\Program Files (x86)",
+            "C:\\ProgramData",
+        ];
+        if path
+            .components()
+            .filter_map(|c| c.as_os_str().to_str()) // 转换为 &str
+            .any(|c_str| uni_exclude_list.contains(&c_str.to_lowercase().as_str()))
+        {
+            return true;
+        }
+
+        for excl in exclude_path {
+            if path.starts_with(excl) {
+                return true;
+            }
+        }
+
+        false
+    }
+
     /// 获取发现的模型列表的只读引用 (无变化)
     pub fn get_model_list(&self) -> &Vec<Model> {
         &self.model_list
