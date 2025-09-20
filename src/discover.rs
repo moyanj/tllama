@@ -10,7 +10,11 @@ use std::sync::Mutex;
 use walkdir::WalkDir;
 
 lazy_static! {
-    pub static ref MODEL_DISCOVERER: Mutex<ModelDiscover> = Mutex::new(ModelDiscover::new());
+    pub static ref MODEL_DISCOVERER: Mutex<ModelDiscover> = Mutex::new({
+        let mut discoverer = ModelDiscover::new();
+        discoverer.discover();
+        discoverer
+    });
 }
 
 #[derive(Debug, Clone)]
@@ -39,8 +43,8 @@ impl ModelDiscover {
         }
     }
 
-    pub fn scan_all_paths(&mut self) {
-        self.scan_all_paths = true;
+    pub fn scan_all_paths(&mut self, scan: bool) {
+        self.scan_all_paths = scan;
     }
 
     /// 核心方法：扫描所有已知路径并填充模型列表。
@@ -58,7 +62,6 @@ impl ModelDiscover {
                 .filter_map(Result::ok)
                 .filter(|e| e.file_type().is_file())
             {
-                println!("Scanning file: {:?}", entry.path());
                 let full_path = entry.path();
                 if self.check_exclude(&full_path) {
                     continue;
@@ -353,5 +356,14 @@ impl ModelDiscover {
     /// 获取发现的模型列表的只读引用 (无变化)
     pub fn get_model_list(&self) -> &Vec<Model> {
         &self.model_list
+    }
+
+    pub fn find_model(&self, model_name: &str) -> Result<String, Box<dyn std::error::Error>> {
+        for model in &self.model_list {
+            if model.model_name == model_name {
+                return Ok(model.model_path.to_string_lossy().to_string());
+            }
+        }
+        Err(format!("Model {} not found", model_name).into())
     }
 }

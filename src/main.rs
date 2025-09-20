@@ -1,13 +1,10 @@
-mod cli;
-
 use clap::Parser;
 use rllama::engine::{EngineConfig, InferenceEngine, llama_cpp::LlamaEngine};
-use rllama::template::*;
+use rllama::{chat, cli};
+use rllama::{discover, template::*};
 use std::io::Write;
-/*
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let args = cli::Cli::parse();
 
+fn infer(args: &cli::InferArgs) -> Result<(), Box<dyn std::error::Error>> {
     let example_data_1 = PromptData {
         system: Some("You are a helpful AI assistant.".to_string()),
         tools: None,
@@ -20,7 +17,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         response: None,
     };
     let prompt = render_chatml_template(&example_data_1)?;
-    println!("Rendered Prompt:\n{}", prompt);
+
+    let model_path;
+    if args.model.starts_with(".") || args.model.starts_with("/") {
+        model_path = args.model.clone();
+    } else {
+        model_path = discover::MODEL_DISCOVERER
+            .lock()
+            .unwrap()
+            .find_model(&args.model)?;
+    }
     //exit(1);
     let mut engine = LlamaEngine::new(
         &EngineConfig {
@@ -31,33 +37,75 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             top_p: args.top_p.unwrap_or(0.9), // 修改默认值为0.9
             repeat_penalty: args.repeat_penalty.unwrap_or(1.1),
         },
-        &args.model_path,
+        &model_path,
     )?;
-    if args.stream {
-        // 流式模式 - 逐词输出
-        engine.infer_stream(&prompt, |token| {
-            print!("{}", token);
-            std::io::stdout().flush()?; // 立即刷新输出
-            Ok(())
-        })?;
+    // 流式模式 - 逐词输出
+    engine.infer_stream(&prompt, &mut |token| {
+        print!("{}", token);
+        std::io::stdout().flush()?; // 立即刷新输出
+        Ok(())
+    })?;
+    Ok(())
+}
 
-        println!(); // 输出完成后换行
+fn list_models() -> Result<(), Box<dyn std::error::Error>> {
+    let discoverer = discover::MODEL_DISCOVERER.lock().unwrap();
+    let models = discoverer.get_model_list();
+    if models.is_empty() {
+        println!("No models found.");
     } else {
-        // 批量模式 - 一次性输出
-        let result = engine.infer(&prompt)?;
-        println!("{}", result);
+        println!("Discovered Models:");
+        for model in models {
+            let model_type = match model.model_type {
+                discover::ModelType::Gguf => "GGUF",
+                discover::ModelType::Safetensors => "Safetensors",
+            };
+
+            // 智能单位显示
+            let (size_str, unit) = if model.model_size < 1024 * 1024 * 1024 {
+                (
+                    format!("{:.2}", model.model_size as f64 / (1024.0 * 1024.0)),
+                    "MB",
+                )
+            } else {
+                (
+                    format!(
+                        "{:.2}",
+                        model.model_size as f64 / (1024.0 * 1024.0 * 1024.0)
+                    ),
+                    "GB",
+                )
+            };
+
+            println!("Name: {}", model.model_name);
+            println!("  Path: {}", model.model_path.display());
+            println!("  Type: {}", model_type);
+            println!("  Size: {} {}", size_str, unit);
+            println!(); // 添加空行以分隔不同模型
+        }
     }
     Ok(())
-}*/
+}
 
-fn main() {
-    let mut discoverer = rllama::discover::MODEL_DISCOVERER.lock().unwrap();
-    discoverer.scan_all_paths();
-    discoverer.discover();
-    // 打印发现的模型
-    let models = discoverer.get_model_list();
-    println!("发现 {} 个模型:", models.len());
-    for model in models {
-        println!("- 名称: {}, 路径: {:?}", model.model_name, model.model_path);
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let args = cli::Cli::parse();
+    match args.command {
+        cli::Commands::Infer(args) => {
+            infer(&args)?;
+        }
+        cli::Commands::Discover(args) => {
+            discover::MODEL_DISCOVERER
+                .lock()
+                .unwrap()
+                .scan_all_paths(args.all);
+            discover::MODEL_DISCOVERER.lock().unwrap().discover();
+        }
+        cli::Commands::List => {
+            list_models()?;
+        }
+        cli::Commands::Chat(args) => {
+            chat::chat_session(args)?;
+        }
     }
+    Ok(())
 }

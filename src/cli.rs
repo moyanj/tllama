@@ -1,11 +1,23 @@
-use clap::Parser;
+use clap::{Parser, Subcommand};
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 pub struct Cli {
-    /// Path to the model file
-    pub model_path: String,
-    /// Prompt to generate from
+    #[command(subcommand)]
+    pub command: Commands,
+}
+
+#[derive(Subcommand, Debug)]
+pub enum Commands {
+    Infer(InferArgs),
+    Discover(DiscoverArgs),
+    List,
+    Chat(ChatArgs),
+}
+
+#[derive(Parser, Debug)]
+pub struct InferArgs {
+    pub model: String,
     pub prompt: String,
     #[arg(short, long)]
     /// Number of tokens to generate
@@ -30,6 +42,16 @@ pub struct Cli {
     /// Context size
     /// Typical values are 512, 1024, 2048, etc.
     pub n_ctx: Option<i32>,
-    #[clap(long)]
-    pub stream: bool,
+}
+
+#[derive(Parser, Debug)]
+pub struct DiscoverArgs {
+    #[arg(short, long)]
+    /// Scan all paths
+    pub all: bool,
+}
+
+#[derive(Parser, Debug)]
+pub struct ChatArgs {
+    pub model: String,
 }

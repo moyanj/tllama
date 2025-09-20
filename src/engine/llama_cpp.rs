@@ -1,11 +1,10 @@
+use crate::engine::{EngineConfig, InferenceEngine};
 use llama_cpp_2::context::params::LlamaContextParams;
 use llama_cpp_2::llama_backend::LlamaBackend;
 use llama_cpp_2::llama_batch::LlamaBatch;
 use llama_cpp_2::model::params::LlamaModelParams;
 use llama_cpp_2::model::{AddBos, LlamaModel, Special};
 use llama_cpp_2::sampling::LlamaSampler;
-
-use crate::engine::{EngineConfig, InferenceEngine};
 use std::num::NonZeroU32;
 
 pub struct LlamaEngine {
@@ -24,6 +23,9 @@ impl LlamaEngine {
         args: &EngineConfig,
         model_path: &String,
     ) -> Result<Self, Box<dyn std::error::Error>> {
+        llama_cpp_2::send_logs_to_tracing(
+            llama_cpp_2::LogOptions::default().with_logs_enabled(false),
+        );
         let backend = LlamaBackend::init()?;
         let model_params = LlamaModelParams::default();
         let model = LlamaModel::load_from_file(&backend, model_path, &model_params)?;
@@ -51,7 +53,7 @@ impl LlamaEngine {
 impl InferenceEngine for LlamaEngine {
     fn infer(&mut self, prompt: &str) -> Result<String, Box<dyn std::error::Error>> {
         let mut output = String::new();
-        self.infer_stream(prompt, |token| {
+        self.infer_stream(prompt, &mut |token| {
             output.push_str(token);
             Ok(())
         })?;
@@ -61,7 +63,7 @@ impl InferenceEngine for LlamaEngine {
     fn infer_stream(
         &mut self,
         prompt: &str,
-        mut callback: impl FnMut(&str) -> Result<(), Box<dyn std::error::Error>>,
+        callback: &mut dyn FnMut(&str) -> Result<(), Box<dyn std::error::Error>>,
     ) -> Result<(), Box<dyn std::error::Error>> {
         // 设置上下文参数
         let ctx_params = LlamaContextParams::default()

@@ -3,7 +3,7 @@ pub trait InferenceEngine {
     fn infer_stream(
         &mut self,
         prompt: &str,
-        callback: impl FnMut(&str) -> Result<(), Box<dyn std::error::Error>>,
+        callback: &mut dyn FnMut(&str) -> Result<(), Box<dyn std::error::Error>>,
     ) -> Result<(), Box<dyn std::error::Error>>;
 }
 
