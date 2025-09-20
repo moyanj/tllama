@@ -53,16 +53,14 @@ For each function call, return a json object with function name and arguments wi
 "#;
 
 pub fn render_chatml_template(data: &PromptData) -> Result<String, Box<dyn std::error::Error>> {
-    let env = Environment::new();
-    env.add_template("chatml", CHATML_TEMPLATE)?;
-    Ok(env.get_template("chatml")?.render(data)?)
+    render_any_template(CHATML_TEMPLATE, data)
 }
 
 pub fn render_any_template(
     template: &str,
     data: &PromptData,
 ) -> Result<String, Box<dyn std::error::Error>> {
-    let env = Environment::new();
+    let mut env = Environment::new();
     env.add_template("any", template)?;
     Ok(env.get_template("any")?.render(data)?)
 }

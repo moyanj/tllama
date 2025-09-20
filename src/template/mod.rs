@@ -8,6 +8,11 @@ pub use golang::*;
 #[cfg(feature = "tpl-minijinja")]
 pub use jinja::*;
 
+#[cfg(not(any(feature = "tpl-gotpl", feature = "tpl-minijinja")))]
+compile_error!(
+    "No template engine feature enabled. Please enable either 'tpl-gotpl' or 'tpl-minijinja'."
+);
+
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 

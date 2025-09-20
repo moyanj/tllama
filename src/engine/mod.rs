@@ -16,4 +16,10 @@ pub struct EngineConfig {
     pub repeat_penalty: f32,
 }
 
+#[cfg(feature = "engine-llama-cpp")]
 pub mod llama_cpp;
+
+#[cfg(not(any(feature = "engine-llama-cpp", feature = "engine-hf")))]
+compile_error!(
+    "No template engine feature enabled. Please enable either 'engine-llama-cpp' or 'engine-hf'."
+);

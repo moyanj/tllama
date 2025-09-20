@@ -81,7 +81,7 @@ impl InferenceEngine for LlamaEngine {
         }
         // 解码初始提示
         ctx.decode(&mut batch)?;
-        // 采样器 - 移除了greedy()以支持随机采样
+
         let mut sampler = LlamaSampler::chain_simple([
             LlamaSampler::temp(self.temperature),
             LlamaSampler::top_p(self.top_p, 1),

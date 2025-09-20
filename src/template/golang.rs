@@ -54,15 +54,7 @@ For each function call, return a json object with function name and arguments wi
 "#;
 
 pub fn render_chatml_template(data: &PromptData) -> Result<String, Box<dyn std::error::Error>> {
-    let mut data_clone = data.clone();
-    // 检查并修改这个新的副本
-    if data_clone.response.is_none() {
-        data_clone.response = Some("".to_string());
-    }
-    let rendered = gotpl::TemplateRenderer::new(CHATML_TEMPLATE, &data_clone)
-        .use_missing_key_zero(true)
-        .render()?;
-    Ok(rendered)
+    render_any_template(CHATML_TEMPLATE, data)
 }
 
 pub fn render_any_template(
