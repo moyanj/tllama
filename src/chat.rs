@@ -1,9 +1,75 @@
-use std::io::Write;
+// temp_file_debe0b34-5925-4d7d-8a33-c03c0e907683_pasted_text.txt
+use colored::*; // 引入 colored 库
+use rustyline::DefaultEditor;
+use rustyline::error::ReadlineError; // 引入 rustyline
+use std::io::{Write, stdout};
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::thread;
+use std::time::Duration;
 
 use crate::{
     engine::{EngineConfig, InferenceEngine},
     template::*,
 };
+
+// --- 新增: Spinner 动画模块 ---
+/// 一个简单的终端加载动画（spinner）。
+///
+/// 在创建时，它会启动一个新线程来渲染动画。
+/// 调用 `stop()` 方法时，它会向线程发送停止信号，并等待线程结束，
+/// 同时清理动画行，恢复光标。
+struct Spinner {
+    handle: Option<thread::JoinHandle<()>>,
+    stop_signal: Arc<AtomicBool>,
+}
+
+impl Spinner {
+    /// 创建并启动一个新的 spinner 动画。
+    /// message: 动画旁边显示的静态文本。
+    fn new(message: String) -> Self {
+        let stop_signal = Arc::new(AtomicBool::new(false));
+        let signal_clone = stop_signal.clone();
+
+        let handle = thread::spawn(move || {
+            let spinner_chars = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+            let mut i = 0;
+            // 隐藏光标以获得更好的视觉效果
+            print!("\x1B[?25l");
+            stdout().flush().unwrap();
+
+            while !signal_clone.load(Ordering::Relaxed) {
+                let frame = spinner_chars[i % spinner_chars.len()];
+                // 使用 \r 将光标移回行首，实现原地更新
+                print!("\r{} {}", message.dimmed(), frame);
+                stdout().flush().unwrap();
+                thread::sleep(Duration::from_millis(80));
+                i += 1;
+            }
+
+            // 清理动画行并恢复光标
+            // 使用空格覆盖整行内容
+            print!("\r{}\r", " ".repeat(message.len() + 5));
+            // 重新显示光标
+            print!("\x1B[?25h");
+            stdout().flush().unwrap();
+        });
+
+        Self {
+            handle: Some(handle),
+            stop_signal,
+        }
+    }
+
+    /// 停止 spinner 动画并等待其清理完成。
+    fn stop(mut self) {
+        self.stop_signal.store(true, Ordering::Relaxed);
+        if let Some(handle) = self.handle.take() {
+            handle.join().unwrap();
+        }
+    }
+}
+// --- 模块结束 ---
 
 struct ChatSession {
     engine: Box<dyn InferenceEngine>,
@@ -16,27 +82,128 @@ impl ChatSession {
         Self {
             engine,
             data: vec![],
-            system_prompt: "You are a helpful AI assistant.".to_string(),
+            system_prompt: "You are a helpful, respectful and honest AI assistant.".to_string(),
         }
     }
 
-    fn start(&mut self) {
-        loop {
-            print!(">>>");
-            std::io::stdout().flush().unwrap();
-            let mut input = String::new();
-            std::io::stdin()
-                .read_line(&mut input)
-                .expect("Failed to read line");
-            let input = input.trim();
+    fn print_welcome_message(&self) {
+        println!("{}", "========================================".cyan());
+        println!("{}", " Welcome Rllama!".cyan().bold());
+        println!("{}", "========================================".cyan());
+        println!("Type your message and press Enter to chat with the AI.");
+        println!("Type `.help` for more commands.");
+        println!("Type `.exit` or press Ctrl+C to quit.");
+        println!();
+    }
 
-            if input == ".exit" || input == ".quit" || input == ".q" || input == ".bye" {
-                break;
+    fn handle_command(&mut self, command: &str) -> Result<bool, Box<dyn std::error::Error>> {
+        let parts: Vec<&str> = command.trim().splitn(2, ' ').collect();
+        let cmd = parts[0];
+
+        match cmd {
+            ".exit" | ".quit" | ".q" | ".bye" => {
+                println!("{}", "Goodbye!".yellow());
+                return Ok(false);
             }
-
-            self.chat(input).unwrap();
-            println!("");
+            ".help" => {
+                println!("{}", "Available Commands:".green().bold());
+                println!("  {:<15} {}", ".help", "Show this help message.");
+                println!(
+                    "  {:<15} {}",
+                    ".system [prompt]", "View or set the system prompt."
+                );
+                println!("  {:<15} {}", ".clear", "Clear the conversation history.");
+                println!("  {:<15} {}", ".history", "Show the conversation history.");
+                println!("  {:<15} {}", ".exit", "Exit the chat session.");
+            }
+            ".system" => {
+                if let Some(new_prompt) = parts.get(1) {
+                    self.system_prompt = new_prompt.to_string();
+                    println!(
+                        "{} {}",
+                        "System prompt updated:".green(),
+                        self.system_prompt
+                    );
+                } else {
+                    println!(
+                        "{} {}",
+                        "Current system prompt:".green(),
+                        self.system_prompt
+                    );
+                }
+            }
+            ".clear" => {
+                self.data.clear();
+                println!("{}", "Conversation history cleared.".green());
+            }
+            ".history" => {
+                println!("{}", "Conversation History:".green().bold());
+                if self.data.is_empty() {
+                    println!("  (No history yet)");
+                } else {
+                    for msg in &self.data {
+                        let prefix = if msg.role == "user" {
+                            "You".blue()
+                        } else {
+                            "AI".cyan()
+                        };
+                        println!("{}: {}", prefix, msg.content.as_deref().unwrap_or(""));
+                    }
+                }
+            }
+            _ => {
+                println!("{}'{}'", "Unknown command: ".red(), command);
+            }
         }
+        Ok(true)
+    }
+
+    fn start(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+        let mut rl = DefaultEditor::new()?;
+        ctrlc::set_handler(move || {
+            println!("\n{}", "Received Ctrl-C. Exiting...".yellow());
+            // 确保退出时恢复光标
+            print!("\x1B[?25h");
+            stdout().flush().unwrap();
+            std::process::exit(0);
+        })?;
+
+        self.print_welcome_message();
+
+        loop {
+            let readline = rl.readline(&">>> ".green().to_string());
+            match readline {
+                Ok(line) => {
+                    let input = line.trim();
+                    if input.is_empty() {
+                        continue;
+                    }
+
+                    rl.add_history_entry(input)?;
+
+                    if input.starts_with('.') {
+                        if !self.handle_command(input)? {
+                            break;
+                        }
+                    } else {
+                        self.chat(input)?;
+                    }
+                }
+                Err(ReadlineError::Interrupted) => {
+                    println!("{}", "Received Ctrl-C. Exiting...".yellow());
+                    break;
+                }
+                Err(ReadlineError::Eof) => {
+                    println!("{}", "Received Ctrl-D. Exiting...".yellow());
+                    break;
+                }
+                Err(err) => {
+                    println!("Error: {:?}", err);
+                    break;
+                }
+            }
+        }
+        Ok(())
     }
 
     fn chat(&mut self, user_input: &str) -> Result<(), Box<dyn std::error::Error>> {
@@ -56,12 +223,38 @@ impl ChatSession {
 
         let prompt = render_chatml_template(&prompt_data)?;
         let mut out = vec![];
-        self.engine.infer_stream(&prompt, &mut |token| {
+
+        // --- 修改: 在AI响应前启动动画 ---
+        // 将 Spinner 包装在 Option 中，以便在闭包内安全地 `.take()` 和消耗它。
+        let mut spinner = Some(Spinner::new("".to_string()));
+        let mut first_token = true;
+
+        let result = self.engine.infer_stream(&prompt, &mut |token| {
+            if first_token {
+                // 在接收到第一个 token 时，停止并移除 spinner。
+                if let Some(s) = spinner.take() {
+                    s.stop();
+                }
+                stdout().flush()?;
+                first_token = false;
+            }
+            // 流式打印 AI 的回复
             print!("{}", token);
-            std::io::stdout().flush()?;
+            stdout().flush()?;
             out.push(token.to_string());
             Ok(())
-        })?;
+        });
+
+        // 如果流式传输结束但没有收到任何 token（例如出错或空回复），
+        // 确保 spinner 仍然被停止。
+        if let Some(s) = spinner.take() {
+            s.stop();
+        }
+
+        result?; // 处理 infer_stream 可能返回的错误
+
+        println!(); // 在 AI 回复结束后换行
+
         self.data.push(Message {
             role: "assistant".to_string(),
             content: Some(out.join("")),
@@ -73,7 +266,7 @@ impl ChatSession {
 
 pub fn chat_session(args: crate::cli::ChatArgs) -> Result<(), Box<dyn std::error::Error>> {
     let model_path;
-    if args.model.starts_with(".") || args.model.starts_with("/") {
+    if args.model.starts_with('.') || args.model.starts_with('/') {
         model_path = args.model.clone();
     } else {
         model_path = crate::discover::MODEL_DISCOVERER
@@ -82,19 +275,38 @@ pub fn chat_session(args: crate::cli::ChatArgs) -> Result<(), Box<dyn std::error
             .find_model(&args.model)?;
     }
 
-    let engine = Box::new(crate::engine::llama_cpp::LlamaEngine::new(
-        &EngineConfig {
-            n_ctx: 2048,
-            n_len: 2048,
-            temperature: 0.8,
-            top_k: 40,
-            top_p: 0.9, // 修改默认值为0.9
-            repeat_penalty: 1.1,
-        },
-        &model_path,
-    )?);
+    let engine_config = EngineConfig {
+        n_ctx: 2048,
+        n_len: 2048,
+        temperature: 0.8,
+        top_k: 40,
+        top_p: 0.9,
+        repeat_penalty: 1.1,
+    };
+
+    // --- 修改: 在加载模型时使用动画 ---
+    // 1. 启动 spinner
+    let spinner = Spinner::new("Loading model...".to_string());
+
+    // 2. 执行耗时操作
+    let engine_result = crate::engine::llama_cpp::LlamaEngine::new(&engine_config, &model_path);
+
+    // 3. 停止 spinner
+    spinner.stop();
+
+    // 4. 根据结果打印最终信息
+    let engine = match engine_result {
+        Ok(engine) => {
+            println!("{} {}", "Model loaded successfully.".dimmed(), "✔".green());
+            Box::new(engine)
+        }
+        Err(e) => {
+            eprintln!("\n{} {}", "Failed to load model.".red().bold(), "✖".red());
+            return Err(e.into());
+        }
+    };
+    // --- 修改结束 ---
 
     let mut session = ChatSession::new(engine);
-    session.start();
-    Ok(())
+    session.start()
 }

@@ -32,3 +32,6 @@ serde_json = "1.0.145"
 pyo3 = { version = "0.26.0", optional = true }
 dirs = "6.0.0"
 walkdir = "2.5.0"
+rustyline = "17.0.1"
+colored = "3.0.0"
+ctrlc = { version = "3.5.0", features = ["termination"] }
