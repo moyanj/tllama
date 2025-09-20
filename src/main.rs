@@ -1,22 +1,11 @@
 use clap::Parser;
+use rllama::cli;
+use rllama::discover;
 use rllama::engine::{EngineConfig, InferenceEngine, llama_cpp::LlamaEngine};
-use rllama::{chat, cli};
-use rllama::{discover, template::*};
 use std::io::Write;
 
 fn infer(args: &cli::InferArgs) -> Result<(), Box<dyn std::error::Error>> {
-    let example_data_1 = PromptData {
-        system: Some("You are a helpful AI assistant.".to_string()),
-        tools: None,
-        messages: Some(vec![Message {
-            role: "user".to_string(),
-            content: Some(args.prompt.to_string()),
-            tool_calls: None,
-        }]),
-        prompt: None,
-        response: None,
-    };
-    let prompt = render_chatml_template(&example_data_1)?;
+    let prompt = args.prompt.clone();
 
     let model_path;
     if args.model.starts_with(".") || args.model.starts_with("/") {
@@ -103,8 +92,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         cli::Commands::List => {
             list_models()?;
         }
+        #[cfg(feature = "chat")]
         cli::Commands::Chat(args) => {
-            chat::chat_session(args)?;
+            rllama::chat::chat_session(args)?;
         }
     }
     Ok(())

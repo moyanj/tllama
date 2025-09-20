@@ -13,12 +13,6 @@ use crate::{
     template::*,
 };
 
-// --- 新增: Spinner 动画模块 ---
-/// 一个简单的终端加载动画（spinner）。
-///
-/// 在创建时，它会启动一个新线程来渲染动画。
-/// 调用 `stop()` 方法时，它会向线程发送停止信号，并等待线程结束，
-/// 同时清理动画行，恢复光标。
 struct Spinner {
     handle: Option<thread::JoinHandle<()>>,
     stop_signal: Arc<AtomicBool>,
@@ -88,7 +82,7 @@ impl ChatSession {
 
     fn print_welcome_message(&self) {
         println!("{}", "========================================".cyan());
-        println!("{}", " Welcome Rllama!".cyan().bold());
+        println!("{}", " Welcome to Rllama!".cyan().bold());
         println!("{}", "========================================".cyan());
         println!("Type your message and press Enter to chat with the AI.");
         println!("Type `.help` for more commands.");

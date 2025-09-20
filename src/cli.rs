@@ -12,6 +12,7 @@ pub enum Commands {
     Infer(InferArgs),
     Discover(DiscoverArgs),
     List,
+    #[cfg(feature = "chat")]
     Chat(ChatArgs),
 }
 
@@ -51,6 +52,7 @@ pub struct DiscoverArgs {
     pub all: bool,
 }
 
+#[cfg(feature = "chat")]
 #[derive(Parser, Debug)]
 pub struct ChatArgs {
     pub model: String,
