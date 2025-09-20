@@ -30,4 +30,6 @@ pub struct Cli {
     /// Context size
     /// Typical values are 512, 1024, 2048, etc.
     pub n_ctx: Option<i32>,
+    #[clap(long)]
+    pub stream: bool,
 }
