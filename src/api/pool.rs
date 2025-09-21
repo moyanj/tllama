@@ -39,7 +39,7 @@ impl ModelPool {
 
         // 2. 如果模型不在池中，则需要发现并加载它
         // 在发现和加载模型期间，我们不持有 `self.models` 的锁，以避免阻塞其他请求。
-        let model_path_string = {
+        let model = {
             let discoverer_guard = MODEL_DISCOVERER.lock().unwrap(); // 阻塞式锁，但很快就会释放
             discoverer_guard
                 .find_model(model_name)
@@ -63,13 +63,14 @@ impl ModelPool {
         };
 
         // 加载 LlamaEngine。这是一个可能耗时的操作。
-        let engine = crate::engine::llama_cpp::LlamaEngine::new(&engine_config, &model_path_string)
-            .map_err(|e| -> Box<dyn Error> {
+        let engine = crate::engine::llama_cpp::LlamaEngine::new(&engine_config, &model).map_err(
+            |e| -> Box<dyn Error> {
                 Box::new(std::io::Error::new(
                     std::io::ErrorKind::Other,
                     format!("Failed to load model '{}': {}", model_name, e),
                 )) as Box<dyn Error>
-            })?;
+            },
+        )?;
 
         // 将加载的引擎封装在 `Arc<dyn InferenceEngine>>` 中
         let new_engine_arc: Arc<dyn InferenceEngine> = Arc::new(engine);

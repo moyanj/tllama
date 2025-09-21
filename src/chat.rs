@@ -1,13 +1,13 @@
-// temp_file_debe0b34-5925-4d7d-8a33-c03c0e907683_pasted_text.txt
-use colored::*; // 引入 colored 库
+use colored::*;
 use rustyline::DefaultEditor;
-use rustyline::error::ReadlineError; // 引入 rustyline
+use rustyline::error::ReadlineError;
 use std::io::{Write, stdout};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
 use std::time::Duration;
 
+use crate::discover::Model;
 use crate::{
     engine::{EngineConfig, InferenceEngine},
     template::*,
@@ -261,7 +261,7 @@ impl ChatSession {
 pub fn chat_session(args: crate::cli::ChatArgs) -> Result<(), Box<dyn std::error::Error>> {
     let model_path;
     if args.model.starts_with('.') || args.model.starts_with('/') {
-        model_path = args.model.clone();
+        model_path = Model::from_path(&args.model)
     } else {
         model_path = crate::discover::MODEL_DISCOVERER
             .lock()

@@ -1,6 +1,7 @@
 use clap::Parser;
 use rllama::cli;
 use rllama::discover;
+use rllama::discover::Model;
 use rllama::engine::{EngineConfig, InferenceEngine, llama_cpp::LlamaEngine};
 use std::io::Write;
 
@@ -16,7 +17,7 @@ fn infer(args: &cli::InferArgs) -> Result<(), Box<dyn std::error::Error>> {
 
     let model_path;
     if args.model.starts_with(".") || args.model.starts_with("/") {
-        model_path = args.model.clone();
+        model_path = Model::from_path(&args.model);
     } else {
         model_path = discover::MODEL_DISCOVERER
             .lock()

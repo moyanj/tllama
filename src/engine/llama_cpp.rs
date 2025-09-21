@@ -1,3 +1,4 @@
+use crate::discover::Model;
 use crate::engine::{EngineConfig, InferenceEngine};
 use llama_cpp_2::context::params::LlamaContextParams;
 use llama_cpp_2::llama_backend::LlamaBackend;
@@ -12,6 +13,7 @@ unsafe impl Send for LlamaEngine {}
 unsafe impl Sync for LlamaEngine {}
 
 pub struct LlamaEngine {
+    model_info: Model,
     model: LlamaModel,
     backend: LlamaBackend,
     n_ctx: i32,
@@ -25,14 +27,14 @@ pub struct LlamaEngine {
 impl LlamaEngine {
     pub fn new(
         args: &EngineConfig,
-        model_path: &String,
+        model_info: &Model,
     ) -> Result<Self, Box<dyn std::error::Error>> {
         llama_cpp_2::send_logs_to_tracing(
             llama_cpp_2::LogOptions::default().with_logs_enabled(false),
         );
         let backend = LlamaBackend::init()?;
         let model_params = LlamaModelParams::default();
-        let model = LlamaModel::load_from_file(&backend, model_path, &model_params)?;
+        let model = LlamaModel::load_from_file(&backend, &model_info.model_path, &model_params)?;
 
         let n_ctx = args.n_ctx;
         let n_len = args.n_len;
@@ -50,6 +52,7 @@ impl LlamaEngine {
             top_k,
             top_p,
             repeat_penalty,
+            model_info: model_info.clone(),
         })
     }
 }

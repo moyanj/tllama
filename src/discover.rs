@@ -32,6 +32,19 @@ pub struct Model {
     pub model_size: u64,
     pub model_template: Option<String>,
 }
+
+impl Model {
+    pub fn from_path(path: &String) -> Self {
+        Model {
+            model_path: PathBuf::from(path),
+            model_name: path.to_string(),
+            model_type: ModelType::Gguf,
+            model_size: 0,
+            model_template: None,
+        }
+    }
+}
+
 pub struct ModelDiscover {
     model_list: Vec<Model>,
     scan_all_paths: bool,
@@ -360,10 +373,10 @@ impl ModelDiscover {
         &self.model_list
     }
 
-    pub fn find_model(&self, model_name: &str) -> Result<String, Box<dyn std::error::Error>> {
+    pub fn find_model(&self, model_name: &str) -> Result<Model, Box<dyn std::error::Error>> {
         for model in &self.model_list {
             if model.model_name == model_name {
-                return Ok(model.model_path.to_string_lossy().to_string());
+                return Ok(model.clone());
             }
         }
         Err(format!("Model {} not found", model_name).into())
