@@ -7,6 +7,10 @@ use llama_cpp_2::model::{AddBos, LlamaModel, Special};
 use llama_cpp_2::sampling::LlamaSampler;
 use std::num::NonZeroU32;
 
+// 声明LlamaEngine是线程安全的
+unsafe impl Send for LlamaEngine {}
+unsafe impl Sync for LlamaEngine {}
+
 pub struct LlamaEngine {
     model: LlamaModel,
     backend: LlamaBackend,

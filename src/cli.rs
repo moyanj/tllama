@@ -61,8 +61,7 @@ pub struct ChatArgs {
 
 #[derive(Parser, Debug)]
 pub struct ServeArgs {
-    pub model: String,
-    #[arg(long, default_value = "127.0.0.1")]
+    #[arg(long, default_value = "0.0.0.0")]
     pub host: String,
     #[arg(short, long, default_value_t = 8080)]
     pub port: u16,

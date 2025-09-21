@@ -1,4 +1,4 @@
-pub trait InferenceEngine {
+pub trait InferenceEngine: Send + Sync {
     fn infer(&mut self, prompt: &str) -> Result<String, Box<dyn std::error::Error>>;
     fn infer_stream(
         &mut self,

@@ -5,38 +5,9 @@ use rllama::engine::{EngineConfig, InferenceEngine, llama_cpp::LlamaEngine};
 use std::io::Write;
 
 async fn serve(args: &cli::ServeArgs) -> Result<(), Box<dyn std::error::Error>> {
-    let model_path;
-    if args.model.starts_with(".") || args.model.starts_with("/") {
-        model_path = args.model.clone();
-    } else {
-        model_path = discover::MODEL_DISCOVERER
-            .lock()
-            .unwrap()
-            .find_model(&args.model)?;
-    }
-
-    let engine_config = EngineConfig {
-        n_ctx: 2048,
-        n_len: 2048,
-        temperature: 0.8,
-        top_k: 40,
-        top_p: 0.9,
-        repeat_penalty: 1.1,
-    };
-
-    println!("Loading model...");
-    let engine = LlamaEngine::new(&engine_config, &model_path)?;
-    println!("Model loaded successfully.");
-
-    // 启动API服务器
-    rllama::api::start_api_server(
-        Box::new(engine),
-        args.host.clone(),
-        args.port,
-        args.system_prompt.clone(),
-    )
-    .await?;
-
+    // The server now starts with an empty model pool.
+    // Models are loaded dynamically via the API.
+    rllama::api::start_api_server(args.host.clone(), args.port).await?;
     Ok(())
 }
 

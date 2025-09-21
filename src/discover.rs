@@ -1,4 +1,6 @@
 use lazy_static::lazy_static;
+use serde::Deserialize;
+use serde::Serialize;
 use serde_json::Value;
 use std::collections::HashSet;
 use std::env;
@@ -17,12 +19,12 @@ lazy_static! {
     });
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ModelType {
     Gguf,
     Safetensors,
 }
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Model {
     pub model_type: ModelType,
     pub model_path: PathBuf,
