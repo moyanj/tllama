@@ -1,3 +1,5 @@
+use crate::discover::Model;
+
 pub trait InferenceEngine: Send + Sync {
     fn infer(&mut self, prompt: &str) -> Result<String, Box<dyn std::error::Error>>;
     fn infer_stream(
@@ -5,8 +7,11 @@ pub trait InferenceEngine: Send + Sync {
         prompt: &str,
         callback: &mut dyn FnMut(&str) -> Result<(), Box<dyn std::error::Error>>,
     ) -> Result<(), Box<dyn std::error::Error>>;
+    fn get_model_info(&self) -> Model;
+    fn set_config(&mut self, _config: &EngineConfig) {}
 }
 
+#[derive(Clone, Debug)]
 pub struct EngineConfig {
     pub n_ctx: i32,
     pub n_len: u32,

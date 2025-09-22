@@ -1,15 +1,13 @@
 use std::{collections::HashMap, error::Error, sync::Arc};
-use tokio::sync::Mutex;
+use tokio::sync::Mutex; // 使用 tokio 的 Mutex
 
 use crate::{
     discover::MODEL_DISCOVERER,
-    engine::{EngineConfig, InferenceEngine},
+    engine::{EngineConfig, InferenceEngine}, // 确保 InferenceEngine trait 在作用域内
 };
 
 pub struct ModelPool {
-    // 使用 Mutex 包裹 HashMap 以实现内部可变性
-    // HashMap 的值类型改为 Arc<dyn InferenceEngine> 来存储特征对象并允许共享
-    models: Mutex<HashMap<String, Arc<dyn InferenceEngine>>>,
+    models: Mutex<HashMap<String, Arc<tokio::sync::Mutex<dyn InferenceEngine + Send>>>>,
 }
 
 impl ModelPool {
@@ -22,13 +20,14 @@ impl ModelPool {
     pub async fn get_model(
         &self,
         model_name: &str,
-    ) -> Result<Arc<dyn InferenceEngine>, Box<dyn Error>> {
+    ) -> Result<Arc<tokio::sync::Mutex<dyn InferenceEngine + Send>>, Box<dyn Error>> {
         // 1. 尝试从池中获取模型，如果存在则直接返回
         {
             let models_guard = self.models.lock().await; // 异步锁
-            if let Some(engine) = models_guard.get(model_name) {
+            if let Some(engine_mutex_arc) = models_guard.get(model_name) {
                 println!("[ModelPool] Model '{}' found in pool.", model_name);
-                return Ok(Arc::clone(engine));
+                // 返回克隆的 Arc<Mutex<...>>
+                return Ok(Arc::clone(engine_mutex_arc));
             }
         } // `models_guard` 在这里超出作用域，释放了锁。
 
@@ -52,10 +51,9 @@ impl ModelPool {
         };
 
         // 定义用于加载模型的默认 EngineConfig。
-        // 这些值与 `main.rs` 中 `infer` 命令使用的默认值相匹配。
         let engine_config = EngineConfig {
             n_ctx: 2048,
-            n_len: 2048,
+            n_len: 2048, // 假设这是一个合理的默认值，或者根据实际情况调整
             temperature: 0.8,
             top_k: 40,
             top_p: 0.9,
@@ -63,26 +61,36 @@ impl ModelPool {
         };
 
         // 加载 LlamaEngine。这是一个可能耗时的操作。
-        let engine = crate::engine::llama_cpp::LlamaEngine::new(&engine_config, &model).map_err(
-            |e| -> Box<dyn Error> {
+        let concrete_engine = crate::engine::llama_cpp::LlamaEngine::new(&engine_config, &model)
+            .map_err(|e| -> Box<dyn Error> {
                 Box::new(std::io::Error::new(
                     std::io::ErrorKind::Other,
                     format!("Failed to load model '{}': {}", model_name, e),
                 )) as Box<dyn Error>
-            },
-        )?;
+            })?;
 
-        // 将加载的引擎封装在 `Arc<dyn InferenceEngine>>` 中
-        let new_engine_arc: Arc<dyn InferenceEngine> = Arc::new(engine);
+        // 将加载的引擎封装在 tokio::sync::Mutex 中，然后再封装在 Arc 中
+        let new_engine_mutex_arc: Arc<tokio::sync::Mutex<dyn InferenceEngine + Send>> =
+            Arc::new(Mutex::new(concrete_engine));
 
         // 3. 将新加载的模型添加到池中
         let mut models_guard = self.models.lock().await; // 重新获取锁以修改 HashMap
-        models_guard.insert(model_name.to_string(), Arc::clone(&new_engine_arc));
+        models_guard.insert(model_name.to_string(), Arc::clone(&new_engine_mutex_arc));
 
         println!(
             "[ModelPool] Model '{}' loaded and added to pool.",
             model_name
         );
-        Ok(new_engine_arc)
+        Ok(new_engine_mutex_arc)
+    }
+
+    pub async fn unload_model(&self, model_name: &str) {
+        // 1. 尝试从池中获取模型，如果存在则将其从池中移除
+        {
+            let mut models_guard = self.models.lock().await; // 异步锁
+            if models_guard.remove(model_name).is_some() {
+                println!("[ModelPool] Model '{}' unloaded from pool.", model_name);
+            }
+        }
     }
 }

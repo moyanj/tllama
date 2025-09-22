@@ -16,12 +16,7 @@ pub struct LlamaEngine {
     model_info: Model,
     model: LlamaModel,
     backend: LlamaBackend,
-    n_ctx: i32,
-    n_len: u32,
-    temperature: f32,
-    top_k: i32,
-    top_p: f32,
-    repeat_penalty: f32,
+    args: EngineConfig,
 }
 
 impl LlamaEngine {
@@ -36,28 +31,19 @@ impl LlamaEngine {
         let model_params = LlamaModelParams::default();
         let model = LlamaModel::load_from_file(&backend, &model_info.model_path, &model_params)?;
 
-        let n_ctx = args.n_ctx;
-        let n_len = args.n_len;
-        let temperature = args.temperature;
-        let top_k = args.top_k;
-        let top_p = args.top_p;
-        let repeat_penalty = args.repeat_penalty;
-
         Ok(LlamaEngine {
             model,
             backend,
-            n_ctx,
-            n_len,
-            temperature,
-            top_k,
-            top_p,
-            repeat_penalty,
+            args: (*args).clone(),
             model_info: model_info.clone(),
         })
     }
 }
 
 impl InferenceEngine for LlamaEngine {
+    fn get_model_info(&self) -> Model {
+        self.model_info.clone()
+    }
     fn infer(&mut self, prompt: &str) -> Result<String, Box<dyn std::error::Error>> {
         let mut output = String::new();
         self.infer_stream(prompt, &mut |token| {
@@ -74,7 +60,7 @@ impl InferenceEngine for LlamaEngine {
     ) -> Result<(), Box<dyn std::error::Error>> {
         // 设置上下文参数
         let ctx_params = LlamaContextParams::default()
-            .with_n_ctx(Some(NonZeroU32::new(self.n_ctx as u32).unwrap()))
+            .with_n_ctx(Some(NonZeroU32::new(self.args.n_ctx as u32).unwrap()))
             .with_n_batch(2048)
             .with_n_ubatch(512)
             .with_n_threads(20);
@@ -92,17 +78,17 @@ impl InferenceEngine for LlamaEngine {
         ctx.decode(&mut batch)?;
 
         let mut sampler = LlamaSampler::chain_simple([
-            LlamaSampler::temp(self.temperature),
-            LlamaSampler::top_p(self.top_p, 1),
-            LlamaSampler::top_k(self.top_k),
-            LlamaSampler::penalties(64, self.repeat_penalty, 0.0, 0.0),
+            LlamaSampler::temp(self.args.temperature),
+            LlamaSampler::top_p(self.args.top_p, 1),
+            LlamaSampler::top_k(self.args.top_k),
+            LlamaSampler::penalties(64, self.args.repeat_penalty, 0.0, 0.0),
             LlamaSampler::greedy(),
         ])
         .with_tokens(tokens_list.iter().copied());
         let mut n_cur = batch.n_tokens();
         let mut n_decode = 0;
         // 主生成循环
-        while n_cur < self.n_ctx && n_decode < self.n_len as i32 {
+        while n_cur < self.args.n_ctx && n_decode < self.args.n_len as i32 {
             // 采样下一个token
             let token = sampler.sample(&ctx, batch.n_tokens() - 1);
             // 检查是否是EOS
@@ -125,5 +111,8 @@ impl InferenceEngine for LlamaEngine {
             ctx.decode(&mut batch)?;
         }
         Ok(())
+    }
+    fn set_config(&mut self, config: &EngineConfig) {
+        self.args = (*config).clone();
     }
 }
