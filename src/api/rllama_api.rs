@@ -7,7 +7,6 @@ use serde_json::json;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 use std::time::{SystemTime, UNIX_EPOCH};
-use tokio::sync::mpsc;
 use tokio_stream::StreamExt;
 use tokio_stream::wrappers::ReceiverStream;
 
@@ -32,19 +31,6 @@ struct StreamChunk {
     model: String,
     finished: bool,
     finish_reason: Option<String>,
-}
-
-// 自定义流类型包装器
-struct ChunkStream {
-    inner: ReceiverStream<Result<Bytes, actix_web::Error>>,
-}
-
-impl Stream for ChunkStream {
-    type Item = Result<Bytes, actix_web::Error>;
-
-    fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
-        Pin::new(&mut self.inner).poll_next(cx)
-    }
 }
 
 #[actix_web::get("/rllama/load/{model_name:.*}")]
@@ -121,8 +107,50 @@ pub async fn infer(
     engine_mutex_arc.lock().await.set_config(&engine_config);
 
     if stream_requested {
+        let (tx, rx) = tokio::sync::mpsc::unbounded_channel::<StreamChunk>();
+        let prompt_clone = prompt.clone();
+        let model_name_clone = model_name.clone();
+        tokio::spawn(async move {
+            let tx_tokens = tx.clone();
+            let model_name_clone2 = model_name_clone.clone(); // 创建额外的克隆以避免移动问题
+            let _ = engine_mutex_arc.lock().await.infer(
+                &prompt_clone,
+                Some(Box::new(move |tok| {
+                    let _ = tx_tokens.send(StreamChunk {
+                        id: "".into(),
+                        content: tok.into(),
+                        created: SystemTime::now()
+                            .duration_since(UNIX_EPOCH)
+                            .unwrap()
+                            .as_secs(),
+                        model: model_name_clone.clone(), // 使用克隆的变量
+                        finished: false,
+                        finish_reason: None,
+                    });
+                })),
+            );
+            let _ = tx.send(StreamChunk {
+                id: "".into(),
+                content: "".into(),
+                created: SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap()
+                    .as_secs(),
+                model: model_name_clone2, // 使用另一个克隆的变量
+                finished: true,
+                finish_reason: Some("stop".into()),
+            });
+        });
+        let stream = tokio_stream::wrappers::UnboundedReceiverStream::new(rx);
+        let stream = stream.map(|chunk| {
+            let json_str = serde_json::to_string(&chunk).unwrap();
+            Ok::<Bytes, actix_web::Error>(Bytes::from(format!("data: {}\n\n", json_str)))
+        });
+
         Ok(HttpResponse::Ok()
-            .json(json!({"error": "Streaming not supported for non-streaming inference."})))
+            .append_header(("Content-Type", "text/event-stream"))
+            .append_header(("Cache-Control", "no-cache"))
+            .streaming(stream))
     } else {
         // 非流式推理（保持不变）
         let response = engine_mutex_arc.lock().await.infer(&prompt, None);
