@@ -217,10 +217,24 @@ pub async fn chat(
     common_inference(model_name, prompt, data, stream_requested, engine_config).await
 }
 
+#[actix_web::get("/rllama/discover")]
+pub async fn discover() -> ActixResult<HttpResponse> {
+    let models = match MODEL_DISCOVERER.lock() {
+        Ok(discoverer) => discoverer.get_model_list().clone(),
+        Err(e) => {
+            return Ok(HttpResponse::InternalServerError().json(json!({
+                "error": format!("Failed to acquire model discoverer lock: {}", e)
+            })));
+        }
+    };
+    Ok(HttpResponse::Ok().json(models))
+}
+
 pub fn rllama_config(cfg: &mut web::ServiceConfig) {
     cfg.service(load_model)
         .service(unload_model)
         .service(list_models)
         .service(infer)
-        .service(chat);
+        .service(chat)
+        .service(discover);
 }
