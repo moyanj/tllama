@@ -1,5 +1,6 @@
 use crate::discover::Model;
 use crate::engine::{EngineConfig, InferenceEngine};
+use anyhow::Result;
 use llama_cpp_2::context::params::LlamaContextParams;
 use llama_cpp_2::llama_backend::LlamaBackend;
 use llama_cpp_2::llama_batch::LlamaBatch;
@@ -44,20 +45,12 @@ impl InferenceEngine for LlamaEngine {
     fn get_model_info(&self) -> Model {
         self.model_info.clone()
     }
-    fn infer(&mut self, prompt: &str) -> Result<String, Box<dyn std::error::Error>> {
-        let mut output = String::new();
-        self.infer_stream(prompt, &mut |token| {
-            output.push_str(token);
-            Ok(())
-        })?;
-        Ok(output)
-    }
 
-    fn infer_stream(
+    fn infer(
         &mut self,
         prompt: &str,
-        callback: &mut dyn FnMut(&str) -> Result<(), Box<dyn std::error::Error>>,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+        mut callback: Option<Box<dyn FnMut(String) + Send>>,
+    ) -> Result<String> {
         // 设置上下文参数
         let ctx_params = LlamaContextParams::default()
             .with_n_ctx(Some(NonZeroU32::new(self.args.n_ctx as u32).unwrap()))
@@ -87,6 +80,7 @@ impl InferenceEngine for LlamaEngine {
         .with_tokens(tokens_list.iter().copied());
         let mut n_cur = batch.n_tokens();
         let mut n_decode = 0;
+        let mut output = String::new();
         // 主生成循环
         while n_cur < self.args.n_ctx && n_decode < self.args.n_len as i32 {
             // 采样下一个token
@@ -99,7 +93,10 @@ impl InferenceEngine for LlamaEngine {
             let token_str = self.model.token_to_str(token, Special::Plaintext)?;
 
             // 调用回调函数处理输出
-            callback(&token_str)?;
+            if callback.is_some() {
+                callback.as_mut().unwrap()(token_str.clone());
+            }
+
             // 将新生成的token添加到采样器历史中
             sampler.accept(token);
             // 清空批次并添加新生成的token
@@ -107,10 +104,11 @@ impl InferenceEngine for LlamaEngine {
             batch.add(token, n_cur as i32, &[0], true)?;
             n_cur += 1;
             n_decode += 1;
+            output += &token_str;
             // 解码新批次
             ctx.decode(&mut batch)?;
         }
-        Ok(())
+        Ok(output)
     }
     fn set_config(&mut self, config: &EngineConfig) {
         self.args = (*config).clone();

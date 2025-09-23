@@ -32,7 +32,7 @@ impl ModelPool {
         } // `models_guard` 在这里超出作用域，释放了锁。
 
         println!(
-            "[ModelPool] Model '{}' not found in pool. Discovering and loading...",
+            "[ModelPool] Model '{}' not found in pool. Loading...",
             model_name
         );
 

@@ -1,14 +1,22 @@
 use crate::discover::Model;
+use anyhow::Result;
 
+#[async_trait::async_trait]
 pub trait InferenceEngine: Send + Sync {
-    fn infer(&mut self, prompt: &str) -> Result<String, Box<dyn std::error::Error>>;
-    fn infer_stream(
+    fn infer(
         &mut self,
         prompt: &str,
-        callback: &mut dyn FnMut(&str) -> Result<(), Box<dyn std::error::Error>>,
-    ) -> Result<(), Box<dyn std::error::Error>>;
+        callback: Option<Box<dyn FnMut(String) + Send>>,
+    ) -> Result<String>;
     fn get_model_info(&self) -> Model;
     fn set_config(&mut self, _config: &EngineConfig) {}
+}
+
+#[macro_export]
+macro_rules! def_callback {
+    (|$arg:ident| $body:block) => {
+        Some(Box::new(move |$arg: String| $body) as Box<dyn FnMut(String) + Send + 'static>)
+    };
 }
 
 #[derive(Clone, Debug)]

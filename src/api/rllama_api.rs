@@ -125,7 +125,7 @@ pub async fn infer(
             .json(json!({"error": "Streaming not supported for non-streaming inference."})))
     } else {
         // 非流式推理（保持不变）
-        let response = engine_mutex_arc.lock().await.infer(&prompt);
+        let response = engine_mutex_arc.lock().await.infer(&prompt, None);
         match response {
             Ok(text) => Ok(HttpResponse::Ok().json(json!({ "response": text }))),
             Err(e) => Ok(HttpResponse::InternalServerError().json(json!({

@@ -8,7 +8,7 @@ name = "rllama"
 path = "src/lib.rs"
 
 [features]
-default = ["tpl-gotpl", "engine-llama-cpp", "chat", "api"]
+default = ["tpl-gotpl", "engine-llama-cpp", "api", "chat"]
 tpl-gotpl = ["gotpl"]
 tpl-minijinja = ["minijinja"]
 hw-native = ["llama-cpp-2/native"]
@@ -40,4 +40,5 @@ tokio = { version = "1.47.1", features = ["rt-multi-thread", "macros"] }
 actix-web = { version = "4.11.0", optional = true }
 tokio-stream = { version = "0.1.17", optional = true }
 futures = { version = "0.3.31", optional = true }
-async-stream = "0.3.6"
+async-trait = "0.1.89"
+anyhow = "1.0.100"

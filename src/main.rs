@@ -1,5 +1,6 @@
 use clap::Parser;
 use rllama::cli;
+use rllama::def_callback;
 use rllama::discover;
 use rllama::discover::Model;
 use rllama::engine::{EngineConfig, InferenceEngine, llama_cpp::LlamaEngine};
@@ -37,11 +38,13 @@ fn infer(args: &cli::InferArgs) -> Result<(), Box<dyn std::error::Error>> {
         &model_path,
     )?;
     // 流式模式 - 逐词输出
-    engine.infer_stream(&prompt, &mut |token| {
-        print!("{}", token);
-        std::io::stdout().flush()?; // 立即刷新输出
-        Ok(())
-    })?;
+    engine.infer(
+        &prompt,
+        def_callback!(|token| {
+            print!("{}", token);
+            std::io::stdout().flush().unwrap();
+        }),
+    )?;
     Ok(())
 }
 

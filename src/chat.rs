@@ -3,6 +3,7 @@ use rustyline::DefaultEditor;
 use rustyline::error::ReadlineError;
 use std::io::{Write, stdout};
 use std::sync::Arc;
+use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
 use std::time::Duration;
@@ -216,42 +217,43 @@ impl ChatSession {
         };
 
         let prompt = render_chatml_template(&prompt_data)?;
-        let mut out = vec![];
 
         // --- 修改: 在AI响应前启动动画 ---
         // 将 Spinner 包装在 Option 中，以便在闭包内安全地 `.take()` 和消耗它。
-        let mut spinner = Some(Spinner::new("".to_string()));
+        let spinner = Arc::new(Mutex::new(Some(Spinner::new("".to_string()))));
+        let spinner_clone = spinner.clone();
         let mut first_token = true;
 
-        let result = self.engine.infer_stream(&prompt, &mut |token| {
-            if first_token {
-                // 在接收到第一个 token 时，停止并移除 spinner。
-                if let Some(s) = spinner.take() {
-                    s.stop();
+        let result = self.engine.infer(
+            &prompt,
+            crate::def_callback!(|token| {
+                if first_token {
+                    // 在接收到第一个 token 时，停止并移除 spinner。
+                    let mut spinner_guard = spinner_clone.lock().unwrap();
+                    if let Some(s) = spinner_guard.take() {
+                        s.stop();
+                    }
+                    stdout().flush().unwrap();
+                    first_token = false;
                 }
-                stdout().flush()?;
-                first_token = false;
-            }
-            // 流式打印 AI 的回复
-            print!("{}", token);
-            stdout().flush()?;
-            out.push(token.to_string());
-            Ok(())
-        });
+                // 流式打印 AI 的回复
+                print!("{}", token);
+                stdout().flush().unwrap();
+            }),
+        );
 
         // 如果流式传输结束但没有收到任何 token（例如出错或空回复），
         // 确保 spinner 仍然被停止。
-        if let Some(s) = spinner.take() {
+        let mut spinner_guard = spinner.lock().unwrap();
+        if let Some(s) = spinner_guard.take() {
             s.stop();
         }
-
-        result?; // 处理 infer_stream 可能返回的错误
 
         println!(); // 在 AI 回复结束后换行
 
         self.data.push(Message {
             role: "assistant".to_string(),
-            content: Some(out.join("")),
+            content: Some(result?),
             tool_calls: None,
         });
         Ok(())
