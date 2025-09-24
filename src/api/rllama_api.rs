@@ -68,17 +68,18 @@ async fn common_inference(
         let engine_arc_clone = Arc::clone(&engine_arc);
 
         tokio::task::spawn_blocking(move || {
+            let id = uuid::Uuid::new_v4().to_string();
+            let id_clone2 = id.clone();
             let tx_tokens = tx.clone();
             let model_name_clone2 = model_name_clone.clone();
-            println!("Starting inference...");
             // 执行推理并流式发送响应
             let _ = engine_arc_clone.infer(
                 &prompt_clone,
                 Some(&engine_config),
                 Some(Box::new(move |tok| {
-                    println!("{}", tok);
+                    let id_clone = id.clone();
                     let result = tx_tokens.send(StreamChunk {
-                        id: "".into(),
+                        id: id_clone.into(),
                         content: tok.into(),
                         created: SystemTime::now()
                             .duration_since(UNIX_EPOCH)
@@ -97,7 +98,7 @@ async fn common_inference(
 
             // 发送结束信号
             let _ = tx.send(StreamChunk {
-                id: "".into(),
+                id: id_clone2.into(),
                 content: "".into(),
                 created: SystemTime::now()
                     .duration_since(UNIX_EPOCH)
