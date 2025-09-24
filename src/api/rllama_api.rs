@@ -64,14 +64,14 @@ async fn common_inference(
         let (tx, rx) = tokio::sync::mpsc::unbounded_channel::<StreamChunk>();
         let prompt_clone = prompt.clone();
         let model_name_clone = model_name.clone();
-        let engine_mutex_arc_clone = engine_arc.clone();
+        let engine_arc_clone = engine_arc.clone();
 
         tokio::spawn(async move {
             let tx_tokens = tx.clone();
             let model_name_clone2 = model_name_clone.clone();
 
             // 执行推理并流式发送响应
-            let _ = engine_mutex_arc_clone.infer(
+            let _ = engine_arc_clone.infer(
                 &prompt_clone,
                 Some(&engine_config),
                 Some(Box::new(move |tok| {

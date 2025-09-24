@@ -417,7 +417,7 @@ pub async fn create_chat_completion(
         let (tx, rx) = tokio::sync::mpsc::unbounded_channel::<StreamChatCompletionResponse>();
         let prompt_clone = prompt.clone();
         let model_name_clone = model_name.clone();
-        let engine_mutex_arc_clone = engine_arc.clone();
+        let engine_arc_clone = engine_arc.clone();
 
         tokio::spawn(async move {
             let tx_tokens = tx.clone();
@@ -432,7 +432,7 @@ pub async fn create_chat_completion(
             let mut accumulated_content = String::new();
 
             // 执行推理并流式发送响应
-            let _ = engine_mutex_arc_clone.infer(
+            let _ = engine_arc_clone.infer(
                 &prompt_clone,
                 Some(&engine_config),
                 Some(Box::new(move |tok| {
