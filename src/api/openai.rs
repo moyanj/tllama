@@ -241,7 +241,7 @@ pub async fn create_completion(
         let model_name_clone = model_name.clone();
         let engine_arc_clone = Arc::clone(&engine_arc);
 
-        tokio::spawn(async move {
+        tokio::task::spawn_blocking(move || {
             let tx_tokens = tx.clone();
             let model_name_clone2 = model_name_clone.clone();
             let request_id = Uuid::new_v4().to_string();
@@ -419,7 +419,7 @@ pub async fn create_chat_completion(
         let model_name_clone = model_name.clone();
         let engine_arc_clone = engine_arc.clone();
 
-        tokio::spawn(async move {
+        tokio::task::spawn_blocking(move || {
             let tx_tokens = tx.clone();
             let model_name_clone2 = model_name_clone.clone();
             let request_id = Uuid::new_v4().to_string();

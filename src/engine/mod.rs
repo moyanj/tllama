@@ -1,7 +1,6 @@
 use crate::discover::Model;
 use anyhow::Result;
 
-#[async_trait::async_trait]
 pub trait InferenceEngine: Send + Sync {
     fn infer(
         &self,

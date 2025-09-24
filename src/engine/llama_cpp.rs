@@ -1,6 +1,7 @@
 use crate::discover::Model;
 use crate::engine::{EngineConfig, InferenceEngine};
 use anyhow::Result;
+use lazy_static::lazy_static;
 use llama_cpp_2::context::params::LlamaContextParams;
 use llama_cpp_2::llama_backend::LlamaBackend;
 use llama_cpp_2::llama_batch::LlamaBatch;
@@ -9,6 +10,10 @@ use llama_cpp_2::model::{AddBos, LlamaModel, Special};
 use llama_cpp_2::sampling::LlamaSampler;
 use std::num::NonZeroU32;
 
+lazy_static! {
+    pub static ref LLAMA_BACKEND: LlamaBackend = LlamaBackend::init().unwrap();
+}
+
 // 声明LlamaEngine是线程安全的
 unsafe impl Send for LlamaEngine {}
 unsafe impl Sync for LlamaEngine {}
@@ -16,7 +21,6 @@ unsafe impl Sync for LlamaEngine {}
 pub struct LlamaEngine {
     model_info: Model,
     model: LlamaModel,
-    backend: LlamaBackend,
     args: EngineConfig,
 }
 
@@ -28,13 +32,13 @@ impl LlamaEngine {
         llama_cpp_2::send_logs_to_tracing(
             llama_cpp_2::LogOptions::default().with_logs_enabled(false),
         );
-        let backend = LlamaBackend::init()?;
+        //let backend = LlamaBackend::init()?;
         let model_params = LlamaModelParams::default();
-        let model = LlamaModel::load_from_file(&backend, &model_info.model_path, &model_params)?;
+        let model =
+            LlamaModel::load_from_file(&LLAMA_BACKEND, &model_info.model_path, &model_params)?;
 
         Ok(LlamaEngine {
             model,
-            backend,
             args: (*args).clone(),
             model_info: model_info.clone(),
         })
@@ -61,7 +65,7 @@ impl InferenceEngine for LlamaEngine {
             .with_n_ubatch(512)
             .with_n_threads(20);
         // 创建上下文
-        let mut ctx = self.model.new_context(&self.backend, ctx_params)?;
+        let mut ctx = self.model.new_context(&LLAMA_BACKEND, ctx_params)?;
         // Tokenize提示
         let tokens_list = self.model.str_to_token(&prompt, AddBos::Always)?;
         // 创建初始batch
