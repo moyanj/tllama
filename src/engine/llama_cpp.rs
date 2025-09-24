@@ -47,13 +47,16 @@ impl InferenceEngine for LlamaEngine {
     }
 
     fn infer(
-        &mut self,
+        &self,
         prompt: &str,
+        args: Option<&EngineConfig>,
         mut callback: Option<Box<dyn FnMut(String) + Send>>,
     ) -> Result<String> {
+        // 获取EngineConfig实例
+        let args = args.unwrap_or(&self.args);
         // 设置上下文参数
         let ctx_params = LlamaContextParams::default()
-            .with_n_ctx(Some(NonZeroU32::new(self.args.n_ctx as u32).unwrap()))
+            .with_n_ctx(Some(NonZeroU32::new(args.n_ctx as u32).unwrap()))
             .with_n_batch(2048)
             .with_n_ubatch(512)
             .with_n_threads(20);
@@ -71,10 +74,10 @@ impl InferenceEngine for LlamaEngine {
         ctx.decode(&mut batch)?;
 
         let mut sampler = LlamaSampler::chain_simple([
-            LlamaSampler::temp(self.args.temperature),
-            LlamaSampler::top_p(self.args.top_p, 1),
-            LlamaSampler::top_k(self.args.top_k),
-            LlamaSampler::penalties(64, self.args.repeat_penalty, 0.0, 0.0),
+            LlamaSampler::temp(args.temperature),
+            LlamaSampler::top_p(args.top_p, 1),
+            LlamaSampler::top_k(args.top_k),
+            LlamaSampler::penalties(64, args.repeat_penalty, 0.0, 0.0),
             LlamaSampler::greedy(),
         ])
         .with_tokens(tokens_list.iter().copied());
@@ -82,7 +85,7 @@ impl InferenceEngine for LlamaEngine {
         let mut n_decode = 0;
         let mut output = String::new();
         // 主生成循环
-        while n_cur < self.args.n_ctx && n_decode < self.args.n_len as i32 {
+        while n_cur < args.n_ctx && n_decode < args.n_len as i32 {
             // 采样下一个token
             let token = sampler.sample(&ctx, batch.n_tokens() - 1);
             // 检查是否是EOS
@@ -109,8 +112,5 @@ impl InferenceEngine for LlamaEngine {
             ctx.decode(&mut batch)?;
         }
         Ok(output)
-    }
-    fn set_config(&mut self, config: &EngineConfig) {
-        self.args = (*config).clone();
     }
 }

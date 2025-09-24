@@ -4,12 +4,12 @@ use anyhow::Result;
 #[async_trait::async_trait]
 pub trait InferenceEngine: Send + Sync {
     fn infer(
-        &mut self,
+        &self,
         prompt: &str,
+        option: Option<&EngineConfig>,
         callback: Option<Box<dyn FnMut(String) + Send>>,
     ) -> Result<String>;
     fn get_model_info(&self) -> Model;
-    fn set_config(&mut self, _config: &EngineConfig) {}
 }
 
 #[macro_export]

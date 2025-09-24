@@ -6,6 +6,7 @@ use actix_web::web::Bytes;
 use actix_web::{HttpResponse, Result as ActixResult, web};
 use serde::Serialize;
 use serde_json::{Value, json};
+use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tokio_stream::StreamExt;
 use uuid::Uuid;
@@ -221,7 +222,7 @@ pub async fn create_completion(
         repeat_penalty: 1.0, // 默认不使用重复惩罚
     };
 
-    let engine_mutex_arc = match data.model_pool.get_model(&model_name).await {
+    let engine_arc = match data.model_pool.get_model(&model_name).await {
         Ok(engine) => engine,
         Err(e) => {
             return Ok(HttpResponse::BadRequest().json(ErrorResponse {
@@ -234,14 +235,11 @@ pub async fn create_completion(
         }
     };
 
-    // 设置引擎配置
-    engine_mutex_arc.lock().await.set_config(&engine_config);
-
     if stream_requested {
         let (tx, rx) = tokio::sync::mpsc::unbounded_channel::<StreamCompletionResponse>();
         let prompt = request.prompt.clone();
         let model_name_clone = model_name.clone();
-        let engine_mutex_arc_clone = engine_mutex_arc.clone();
+        let engine_arc_clone = Arc::clone(&engine_arc);
 
         tokio::spawn(async move {
             let tx_tokens = tx.clone();
@@ -270,8 +268,9 @@ pub async fn create_completion(
             let mut accumulated_text = String::new();
 
             // 执行推理并流式发送响应
-            let _ = engine_mutex_arc_clone.lock().await.infer(
+            let _ = engine_arc_clone.infer(
                 &prompt,
+                Some(&engine_config),
                 Some(Box::new(move |tok| {
                     accumulated_text.push_str(&tok);
                     let response = StreamCompletionResponse {
@@ -318,7 +317,7 @@ pub async fn create_completion(
             .streaming(stream))
     } else {
         // 非流式推理
-        match engine_mutex_arc.lock().await.infer(&request.prompt, None) {
+        match engine_arc.infer(&request.prompt, Some(&engine_config), None) {
             Ok(text) => {
                 let response = CompletionResponse {
                     id: Uuid::new_v4().to_string(),
@@ -381,7 +380,7 @@ pub async fn create_chat_completion(
         repeat_penalty: 1.0,
     };
 
-    let engine_mutex_arc = match data.model_pool.get_model(&model_name).await {
+    let engine_arc = match data.model_pool.get_model(&model_name).await {
         Ok(engine) => engine,
         Err(e) => {
             return Ok(HttpResponse::BadRequest().json(ErrorResponse {
@@ -393,9 +392,6 @@ pub async fn create_chat_completion(
             }));
         }
     };
-
-    // 设置引擎配置
-    engine_mutex_arc.lock().await.set_config(&engine_config);
 
     // 渲染聊天模板
     let prompt = match crate::template::render_chatml_template(&crate::template::PromptData {
@@ -421,7 +417,7 @@ pub async fn create_chat_completion(
         let (tx, rx) = tokio::sync::mpsc::unbounded_channel::<StreamChatCompletionResponse>();
         let prompt_clone = prompt.clone();
         let model_name_clone = model_name.clone();
-        let engine_mutex_arc_clone = engine_mutex_arc.clone();
+        let engine_mutex_arc_clone = engine_arc.clone();
 
         tokio::spawn(async move {
             let tx_tokens = tx.clone();
@@ -436,8 +432,9 @@ pub async fn create_chat_completion(
             let mut accumulated_content = String::new();
 
             // 执行推理并流式发送响应
-            let _ = engine_mutex_arc_clone.lock().await.infer(
+            let _ = engine_mutex_arc_clone.infer(
                 &prompt_clone,
+                Some(&engine_config),
                 Some(Box::new(move |tok| {
                     accumulated_content.push_str(&tok);
                     let response = StreamChatCompletionResponse {
@@ -489,7 +486,7 @@ pub async fn create_chat_completion(
             .append_header(("Access-Control-Allow-Origin", "*"))
             .streaming(stream))
     } else {
-        match engine_mutex_arc.lock().await.infer(&prompt, None) {
+        match engine_arc.infer(&prompt, Some(&engine_config), None) {
             Ok(text) => {
                 let response = ChatCompletionResponse {
                     id: Uuid::new_v4().to_string(),

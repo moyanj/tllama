@@ -50,7 +50,7 @@ async fn common_inference(
     stream_requested: bool,
     engine_config: EngineConfig,
 ) -> ActixResult<HttpResponse> {
-    let engine_mutex_arc = match data.model_pool.get_model(&model_name).await {
+    let engine_arc = match data.model_pool.get_model(&model_name).await {
         Ok(engine) => engine,
         Err(e) => {
             return Ok(HttpResponse::InternalServerError().json(json!({
@@ -60,21 +60,20 @@ async fn common_inference(
     };
 
     // 设置引擎配置
-    engine_mutex_arc.lock().await.set_config(&engine_config);
-
     if stream_requested {
         let (tx, rx) = tokio::sync::mpsc::unbounded_channel::<StreamChunk>();
         let prompt_clone = prompt.clone();
         let model_name_clone = model_name.clone();
-        let engine_mutex_arc_clone = engine_mutex_arc.clone();
+        let engine_mutex_arc_clone = engine_arc.clone();
 
         tokio::spawn(async move {
             let tx_tokens = tx.clone();
             let model_name_clone2 = model_name_clone.clone();
 
             // 执行推理并流式发送响应
-            let _ = engine_mutex_arc_clone.lock().await.infer(
+            let _ = engine_mutex_arc_clone.infer(
                 &prompt_clone,
+                Some(&engine_config),
                 Some(Box::new(move |tok| {
                     let _ = tx_tokens.send(StreamChunk {
                         id: "".into(),
@@ -116,7 +115,7 @@ async fn common_inference(
             .streaming(stream))
     } else {
         // 非流式推理
-        match engine_mutex_arc.lock().await.infer(&prompt, None) {
+        match engine_arc.infer(&prompt, None, None) {
             Ok(text) => Ok(HttpResponse::Ok().json(json!({ "response": text }))),
             Err(e) => Ok(HttpResponse::InternalServerError().json(json!({
                 "error": e.to_string()
@@ -132,9 +131,8 @@ pub async fn load_model(
 ) -> ActixResult<HttpResponse> {
     let model_name = path.into_inner();
     match data.model_pool.get_model(&model_name).await {
-        Ok(engine_mutex_arc) => {
-            let engine = engine_mutex_arc.lock().await;
-            let model_info = engine.get_model_info();
+        Ok(engine_arc) => {
+            let model_info = engine_arc.get_model_info();
             println!("[API] Model '{}' loaded.", model_name);
             Ok(HttpResponse::Ok().json(model_info))
         }

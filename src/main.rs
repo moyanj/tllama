@@ -40,6 +40,7 @@ fn infer(args: &cli::InferArgs) -> Result<(), Box<dyn std::error::Error>> {
     // 流式模式 - 逐词输出
     engine.infer(
         &prompt,
+        None,
         def_callback!(|token| {
             print!("{}", token);
             std::io::stdout().flush().unwrap();

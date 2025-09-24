@@ -226,6 +226,7 @@ impl ChatSession {
 
         let result = self.engine.infer(
             &prompt,
+            None,
             crate::def_callback!(|token| {
                 if first_token {
                     // 在接收到第一个 token 时，停止并移除 spinner。
