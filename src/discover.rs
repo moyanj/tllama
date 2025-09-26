@@ -292,8 +292,8 @@ impl ModelDiscover {
         }
 
         let mut paths = HashSet::new();
-        if let Ok(rllama_paths_str) = env::var("RLLAMA_MODEL_PATHS") {
-            for path_str in rllama_paths_str.split(',') {
+        if let Ok(tlama_paths_str) = env::var("TLAMA_MODEL_PATHS") {
+            for path_str in tlama_paths_str.split(',') {
                 let trimmed_path = path_str.trim();
                 if !trimmed_path.is_empty() {
                     paths.insert(PathBuf::from(trimmed_path));

@@ -131,7 +131,7 @@ async fn common_inference(
     }
 }
 
-#[actix_web::get("/rllama/load/{model_name:.*}")]
+#[actix_web::get("/tlama/load/{model_name:.*}")]
 pub async fn load_model(
     path: web::Path<String>,
     data: web::Data<AppState>,
@@ -149,7 +149,7 @@ pub async fn load_model(
     }
 }
 
-#[actix_web::get("/rllama/unload/{model_name:.*}")]
+#[actix_web::get("/tlama/unload/{model_name:.*}")]
 pub async fn unload_model(
     path: web::Path<String>,
     data: web::Data<AppState>,
@@ -159,7 +159,7 @@ pub async fn unload_model(
     Ok(HttpResponse::Ok().json(json!({"message": "Model unloaded."})))
 }
 
-#[actix_web::get("/rllama/list")]
+#[actix_web::get("/tlama/list")]
 pub async fn list_models() -> ActixResult<HttpResponse> {
     let models = match MODEL_DISCOVERER.lock() {
         Ok(discoverer) => discoverer.get_model_list().clone(),
@@ -172,7 +172,7 @@ pub async fn list_models() -> ActixResult<HttpResponse> {
     Ok(HttpResponse::Ok().json(models))
 }
 
-#[actix_web::post("/rllama/infer")]
+#[actix_web::post("/tlama/infer")]
 pub async fn infer(
     args: web::Query<InferArgs>,
     data: web::Data<AppState>,
@@ -194,7 +194,7 @@ pub async fn infer(
     common_inference(model_name, prompt, data, stream_requested, engine_config).await
 }
 
-#[actix_web::post("/rllama/chat")]
+#[actix_web::post("/tlama/chat")]
 pub async fn chat(
     args: web::Query<ChatArgs>,
     data: web::Data<AppState>,
@@ -218,7 +218,7 @@ pub async fn chat(
     common_inference(model_name, prompt, data, stream_requested, engine_config).await
 }
 
-#[actix_web::get("/rllama/discover")]
+#[actix_web::get("/tlama/discover")]
 pub async fn discover() -> ActixResult<HttpResponse> {
     let models = match MODEL_DISCOVERER.lock() {
         Ok(discoverer) => discoverer.get_model_list().clone(),
@@ -231,7 +231,7 @@ pub async fn discover() -> ActixResult<HttpResponse> {
     Ok(HttpResponse::Ok().json(models))
 }
 
-pub fn rllama_config(cfg: &mut web::ServiceConfig) {
+pub fn tlama_config(cfg: &mut web::ServiceConfig) {
     cfg.service(load_model)
         .service(unload_model)
         .service(list_models)

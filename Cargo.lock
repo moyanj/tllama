@@ -1628,35 +1628,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "caf4aa5b0f434c91fe5c7f1ecb6a5ece2130b02ad2a590589dda5146df959001"
 
 [[package]]
-name = "rllama"
-version = "0.1.0"
-dependencies = [
- "actix-web",
- "anyhow",
- "async-trait",
- "clap",
- "colored",
- "ctrlc",
- "dirs",
- "encoding_rs",
- "gotpl",
- "gtmpl",
- "lazy_static",
- "llama-cpp-2",
- "minijinja",
- "pyo3",
- "rustyline",
- "serde",
- "serde_json",
- "tokio",
- "tokio-stream",
- "tracing",
- "tracing-subscriber",
- "uuid",
- "walkdir",
-]
-
-[[package]]
 name = "rustc-demangle"
 version = "0.1.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1980,6 +1951,35 @@ checksum = "5d4f6d1145dcb577acf783d4e601bc1d76a13337bb54e6233add580b07344c8b"
 dependencies = [
  "displaydoc",
  "zerovec",
+]
+
+[[package]]
+name = "tlama"
+version = "0.1.0"
+dependencies = [
+ "actix-web",
+ "anyhow",
+ "async-trait",
+ "clap",
+ "colored",
+ "ctrlc",
+ "dirs",
+ "encoding_rs",
+ "gotpl",
+ "gtmpl",
+ "lazy_static",
+ "llama-cpp-2",
+ "minijinja",
+ "pyo3",
+ "rustyline",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tokio-stream",
+ "tracing",
+ "tracing-subscriber",
+ "uuid",
+ "walkdir",
 ]
 
 [[package]]

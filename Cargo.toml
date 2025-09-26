@@ -1,10 +1,10 @@
 [package]
-name = "rllama"
+name = "tlama"
 version = "0.1.0"
 edition = "2024"
 
 [lib]
-name = "rllama"
+name = "tlama"
 path = "src/lib.rs"
 
 [features]

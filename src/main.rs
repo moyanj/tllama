@@ -1,16 +1,16 @@
 use clap::Parser;
-use rllama::cli;
-use rllama::def_callback;
-use rllama::discover;
-use rllama::discover::Model;
-use rllama::engine::{EngineConfig, InferenceEngine};
 use std::io::Write;
+use tlama::cli;
+use tlama::def_callback;
+use tlama::discover;
+use tlama::discover::Model;
+use tlama::engine::{EngineConfig, InferenceEngine};
 use tracing_subscriber::EnvFilter;
 
 async fn serve(args: &cli::ServeArgs) -> Result<(), Box<dyn std::error::Error>> {
     // The server now starts with an empty model pool.
     // Models are loaded dynamically via the API.
-    rllama::api::start_api_server(args.host.clone(), args.port).await?;
+    tlama::api::start_api_server(args.host.clone(), args.port).await?;
     Ok(())
 }
 
@@ -114,7 +114,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         #[cfg(feature = "chat")]
         cli::Commands::Chat(args) => {
-            rllama::chat::chat_session(args)?;
+            tlama::chat::chat_session(args)?;
         }
         cli::Commands::Serve(args) => {
             serve(&args).await?;

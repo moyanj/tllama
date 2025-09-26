@@ -17,7 +17,7 @@ pub async fn start_api_server(host: String, port: u16) -> std::io::Result<()> {
             .app_data(web::Data::new(AppState {
                 model_pool: Arc::clone(&model_pool),
             }))
-            .configure(super::rllama_api::rllama_config)
+            .configure(super::tlama_api::tlama_config)
             .configure(super::openai::openai_config)
     })
     .bind((host, port))?
