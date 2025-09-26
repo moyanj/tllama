@@ -1,0 +1,146 @@
+name: Release Variants
+
+on:
+  push:
+    tags:
+      - "v*" # 触发 tag 发布
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build ${{ matrix.target }} - ${{ matrix.variant.name }}
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        # 组合：目标平台 + 构建变体
+        include:
+          # --- 平台：Linux ---
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-latest
+            runner: cross
+            ext: ""
+            base_name: tlama-x86_64-linux
+
+          - target: aarch64-unknown-linux-musl
+            os: ubuntu-latest
+            runner: cross
+            ext: ""
+            base_name: tlama-aarch64-linux
+
+          # --- macOS ---
+          - target: x86_64-apple-darwin
+            os: macos-latest
+            runner: cross
+            ext: ""
+            base_name: tlama-x86_64-macos
+
+          - target: aarch64-apple-darwin
+            os: macos-latest
+            runner: cross
+            ext: ""
+            base_name: tlama-aarch64-macos
+
+          # --- Windows ---
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+            runner: cargo-zigbuild
+            ext: ".exe"
+            base_name: tlama-x86_64-win-msvc
+
+        # 构建变体（features 配置）
+        variants:
+          - name: default
+            args: ""
+          - name: mini
+            args: "--no-default-features --features tpl-gtmpl,engine-llama-cpp"
+          - name: hf
+            args: "--features engine-hf"
+
+    # 合并所有组合
+    continue-on-error: false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust + Cross/Zig
+        if: matrix.runner == 'cross'
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          target: ${{ matrix.target }}
+          cross: true
+
+      - name: Install Cross
+        if: matrix.runner == 'cross'
+        uses: taiki-e/install-action@v1
+        with:
+          tool: cross
+
+      - name: Install cargo-zigbuild
+        if: matrix.runner == 'cargo-zigbuild'
+        run: |
+          cargo install cargo-zigbuild
+
+      - name: Build Binary (with variant)
+        run: |
+          # 构造输出文件名
+          VARIANT=${{ matrix.variants.name }}
+          BASE_NAME=${{ matrix.base_name }}
+          OUTPUT_NAME="${BASE_NAME}-${VARIANT}${{ matrix.ext }}"
+
+          echo "Building for ${{ matrix.target }}, variant: $VARIANT"
+
+          # 构建命令
+          if [[ "${{ matrix.runner }}" == "cross" ]]; then
+            cross build \
+              --target ${{ matrix.target }} \
+              --release \
+              ${{ matrix.variants.args }}
+          else
+            cargo zigbuild \
+              --target ${{ matrix.target }} \
+              --release \
+              ${{ matrix.variants.args }}
+          fi
+
+          # 复制并重命名二进制
+          cp "target/${{ matrix.target }}/release/tlama${{ matrix.ext }}" "target/release/${OUTPUT_NAME}"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: binaries
+          path: target/release/tlama* # 所有构建产物
+          if-no-files-found: error
+
+  publish-release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: binaries
+
+      - name: List files
+        run: find . -type f
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          draft: false
+          prerelease: ${{ contains(github.ref_name, 'alpha') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'rc') }}
+          body: |
+            Automated release with multiple build variants and targets.
+
+            See [README.md](./README.md) for feature details.
+          files: |
+            binaries/*
