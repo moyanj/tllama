@@ -183,7 +183,7 @@ pub async fn infer(
 
     // 构造配置
     let engine_config = EngineConfig {
-        n_ctx: args.n_ctx.unwrap_or(2048),
+        n_ctx: args.n_ctx.unwrap_or(4096),
         n_len: args.n_len,
         temperature: args.temperature.unwrap_or(0.8),
         top_k: args.top_k.unwrap_or(40),
@@ -203,7 +203,7 @@ pub async fn chat(
     let stream_requested = args.stream.unwrap_or(false);
 
     let engine_config = EngineConfig {
-        n_ctx: args.n_ctx.unwrap_or(2048),
+        n_ctx: args.n_ctx.unwrap_or(4096),
         n_len: args.n_len,
         temperature: args.temperature.unwrap_or(0.8),
         top_k: args.top_k.unwrap_or(40),

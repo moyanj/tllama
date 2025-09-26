@@ -272,7 +272,7 @@ pub fn chat_session(args: crate::cli::ChatArgs) -> Result<(), Box<dyn std::error
     }
 
     let engine_config = EngineConfig {
-        n_ctx: 2048,
+        n_ctx: 4096,
         n_len: None,
         temperature: 0.8,
         top_k: 40,

@@ -54,6 +54,8 @@ impl InferenceEngine for LlamaEngine {
     ) -> Result<String> {
         // 获取EngineConfig实例
         let args = args.unwrap_or(&self.args);
+        println!("args: {:?}", args);
+        println!("prompt: {}", prompt.clone());
         // 设置上下文参数
         let ctx_params = LlamaContextParams::default()
             .with_n_ctx(Some(NonZeroU32::new(args.n_ctx as u32).unwrap()))
@@ -84,10 +86,12 @@ impl InferenceEngine for LlamaEngine {
         let mut n_cur = batch.n_tokens();
         let mut n_decode = 0;
         let mut output = String::new();
+        println!("Starting generation...");
         // 主生成循环
-        while n_cur < args.n_ctx && n_decode < args.n_len.unwrap_or(4294967295) as i32 {
+        let max_tokens = args.n_len.map(|n| n as i32);
+        while max_tokens.map_or(true, |max| n_decode < max) {
             // 采样下一个token
-            let token = sampler.sample(&ctx, batch.n_tokens() - 1);
+            let token = sampler.sample(&ctx, -1);
             // 检查是否是EOS
             if self.model.is_eog_token(token) {
                 break;
