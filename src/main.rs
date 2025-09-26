@@ -3,7 +3,7 @@ use rllama::cli;
 use rllama::def_callback;
 use rllama::discover;
 use rllama::discover::Model;
-use rllama::engine::{EngineConfig, EngineBackend, llama_cpp::LlamaEngine};
+use rllama::engine::{EngineConfig, InferenceEngine};
 use std::io::Write;
 use tracing_subscriber::EnvFilter;
 
@@ -15,6 +15,7 @@ async fn serve(args: &cli::ServeArgs) -> Result<(), Box<dyn std::error::Error>> 
 }
 
 fn infer(args: &cli::InferArgs) -> Result<(), Box<dyn std::error::Error>> {
+    #[cfg(feature = "engine-llama-cpp")]
     llama_cpp_2::send_logs_to_tracing(llama_cpp_2::LogOptions::default().with_logs_enabled(false));
     let prompt = args.prompt.clone();
 
@@ -28,7 +29,7 @@ fn infer(args: &cli::InferArgs) -> Result<(), Box<dyn std::error::Error>> {
             .find_model(&args.model)?;
     }
     //exit(1);
-    let engine = LlamaEngine::new(
+    let engine = InferenceEngine::new(
         &EngineConfig {
             n_ctx: args.n_ctx.unwrap_or(4096),
             n_len: args.n_len,

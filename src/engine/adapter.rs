@@ -4,6 +4,8 @@ use crate::{
 };
 use anyhow::Result;
 
+#[cfg(feature = "engine-hf")]
+use super::hf::TransformersEngine;
 #[cfg(feature = "engine-llama-cpp")]
 use super::llama_cpp::LlamaEngine;
 pub struct InferenceEngine {
@@ -14,7 +16,10 @@ impl InferenceEngine {
     pub fn new(args: &EngineConfig, model: &Model) -> Result<Self, Box<dyn std::error::Error>> {
         Ok(InferenceEngine {
             engine: match model.model_type {
+                #[cfg(feature = "engine-llama-cpp")]
                 ModelType::Gguf => Box::new(LlamaEngine::new(args, model)?),
+                #[cfg(feature = "engine-hf")]
+                ModelType::Safetensors => Box::new(TransformersEngine::new(args, model)?),
                 _ => panic!("Unsupported model type"),
             },
         })

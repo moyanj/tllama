@@ -32,7 +32,7 @@ llama-cpp-2 = { version = "0.1.121", default-features = false, features = [
 minijinja = { version = "0.22.0", optional = true }
 serde = { version = "1.0.225", features = ["derive"] }
 serde_json = "1.0.145"
-pyo3 = { version = "0.26.0", optional = true }
+pyo3 = { version = "0.26.0", optional = true, features = ["auto-initialize"] }
 dirs = "6.0.0"
 walkdir = "2.5.0"
 rustyline = { version = "17.0.1", optional = true }

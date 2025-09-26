@@ -1,5 +1,5 @@
 use crate::discover::Model;
-use crate::engine::{EngineBackend, EngineConfig, InferenceEngine};
+use crate::engine::{EngineBackend, EngineConfig};
 use anyhow::Result;
 use lazy_static::lazy_static;
 use llama_cpp_2::context::params::LlamaContextParams;
@@ -25,11 +25,8 @@ pub struct LlamaEngine {
     args: EngineConfig,
 }
 
-impl LlamaEngine {
-    pub fn new(
-        args: &EngineConfig,
-        model_info: &Model,
-    ) -> Result<Self, Box<dyn std::error::Error>> {
+impl EngineBackend for LlamaEngine {
+    fn new(args: &EngineConfig, model_info: &Model) -> Result<Self> {
         let model_params = LlamaModelParams::default();
         let model =
             LlamaModel::load_from_file(&LLAMA_BACKEND, &model_info.model_path, &model_params)?;
@@ -40,9 +37,6 @@ impl LlamaEngine {
             model_info: model_info.clone(),
         })
     }
-}
-
-impl EngineBackend for LlamaEngine {
     fn get_model_info(&self) -> Model {
         self.model_info.clone()
     }

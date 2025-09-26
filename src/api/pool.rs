@@ -69,10 +69,12 @@ impl ModelPool {
                 )) as Box<dyn Error>
             },
         )?;
-
-        llama_cpp_2::send_logs_to_tracing(
-            llama_cpp_2::LogOptions::default().with_logs_enabled(true),
-        );
+        #[cfg(feature = "engine-llama-cpp")]
+        {
+            llama_cpp_2::send_logs_to_tracing(
+                llama_cpp_2::LogOptions::default().with_logs_enabled(true),
+            );
+        }
 
         // 将加载的引擎封装在 tokio::sync::Mutex 中，然后再封装在 Arc 中
         let new_engine_arc: Arc<InferenceEngine> = Arc::new(concrete_engine);

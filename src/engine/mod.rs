@@ -2,6 +2,9 @@ use crate::discover::Model;
 use anyhow::Result;
 
 pub trait EngineBackend: Send + Sync {
+    fn new(args: &EngineConfig, model: &Model) -> Result<Self>
+    where
+        Self: Sized;
     fn infer(
         &self,
         prompt: &str,
@@ -34,6 +37,9 @@ pub use adapter::InferenceEngine;
 
 #[cfg(feature = "engine-llama-cpp")]
 pub mod llama_cpp;
+
+#[cfg(feature = "engine-hf")]
+pub mod hf;
 
 #[cfg(not(any(feature = "engine-llama-cpp", feature = "engine-hf")))]
 compile_error!(

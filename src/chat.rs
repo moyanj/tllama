@@ -9,10 +9,8 @@ use std::thread;
 use std::time::Duration;
 
 use crate::discover::Model;
-use crate::{
-    engine::{EngineBackend, EngineConfig},
-    template::*,
-};
+use crate::engine::InferenceEngine;
+use crate::{engine::EngineConfig, template::*};
 
 struct Spinner {
     handle: Option<thread::JoinHandle<()>>,
@@ -67,13 +65,13 @@ impl Spinner {
 // --- 模块结束 ---
 
 struct ChatSession {
-    engine: Box<dyn EngineBackend>,
+    engine: Box<InferenceEngine>,
     data: Vec<Message>,
     system_prompt: String,
 }
 
 impl ChatSession {
-    fn new(engine: Box<dyn EngineBackend>) -> Self {
+    fn new(engine: Box<InferenceEngine>) -> Self {
         Self {
             engine,
             data: vec![],
@@ -264,6 +262,7 @@ impl ChatSession {
 }
 
 pub fn chat_session(args: crate::cli::ChatArgs) -> Result<(), Box<dyn std::error::Error>> {
+    #[cfg(feature = "engine-llama-cpp")]
     llama_cpp_2::send_logs_to_tracing(llama_cpp_2::LogOptions::default().with_logs_enabled(false));
     let model_path;
     if args.model.starts_with('.') || args.model.starts_with('/') {
@@ -289,7 +288,7 @@ pub fn chat_session(args: crate::cli::ChatArgs) -> Result<(), Box<dyn std::error
     let spinner = Spinner::new("Loading model...".to_string());
 
     // 2. 执行耗时操作
-    let engine_result = crate::engine::llama_cpp::LlamaEngine::new(&engine_config, &model_path);
+    let engine_result = crate::engine::InferenceEngine::new(&engine_config, &model_path);
 
     // 3. 停止 spinner
     spinner.stop();
