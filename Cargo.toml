@@ -5,6 +5,7 @@ description = "Lightweight Local LLM Inference Engine"
 authors = ["moyan <moyan@moyanjdc.top>"]
 repository = "https://github.com/moyanj/tlama"
 documentation = "https://docs.rs/crate/tlama"
+license = "MIT"
 readme = "README.md"
 include = ["Cargo.toml", "src/**/*.rs", "README.md", "LICENSE"]
 edition = "2024"
