@@ -1638,6 +1638,7 @@ dependencies = [
  "colored",
  "ctrlc",
  "dirs",
+ "encoding_rs",
  "gotpl",
  "gtmpl",
  "lazy_static",

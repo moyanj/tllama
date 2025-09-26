@@ -54,8 +54,7 @@ impl InferenceEngine for LlamaEngine {
     ) -> Result<String> {
         // 获取EngineConfig实例
         let args = args.unwrap_or(&self.args);
-        println!("args: {:?}", args);
-        println!("prompt: {}", prompt.clone());
+        let mut decoder = encoding_rs::UTF_8.new_decoder();
         // 设置上下文参数
         let ctx_params = LlamaContextParams::default()
             .with_n_ctx(Some(NonZeroU32::new(args.n_ctx as u32).unwrap()))
@@ -86,8 +85,7 @@ impl InferenceEngine for LlamaEngine {
         let mut n_cur = batch.n_tokens();
         let mut n_decode = 0;
         let mut output = String::new();
-        println!("Starting generation...");
-        // 主生成循环
+
         let max_tokens = args.n_len.map(|n| n as i32);
         while max_tokens.map_or(true, |max| n_decode < max) {
             // 采样下一个token
@@ -96,8 +94,12 @@ impl InferenceEngine for LlamaEngine {
             if self.model.is_eog_token(token) {
                 break;
             }
+
             // 将token转换为字符串并输出
-            let token_str = self.model.token_to_str(token, Special::Plaintext)?;
+            let output_bytes = self.model.token_to_bytes(token, Special::Tokenize)?;
+            // use `Decoder.decode_to_string()` to avoid the intermediate buffer
+            let mut token_str = String::with_capacity(32);
+            let _decode_result = decoder.decode_to_string(&output_bytes, &mut token_str, false);
 
             // 调用回调函数处理输出
             if callback.is_some() {

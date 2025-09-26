@@ -426,14 +426,11 @@ pub async fn create_chat_completion(
                 .unwrap()
                 .as_secs();
 
-            let mut accumulated_content = String::new();
-
             // 执行推理并流式发送响应
-            let _ = engine_arc_clone.infer(
+            let result = engine_arc_clone.infer(
                 &prompt_clone,
                 Some(&engine_config),
                 Some(Box::new(move |tok| {
-                    accumulated_content.push_str(&tok);
                     let response = StreamChatCompletionResponse {
                         id: request_id.clone(),
                         object: "chat.completion.chunk".to_string(),
@@ -449,9 +446,17 @@ pub async fn create_chat_completion(
                             finish_reason: None,
                         }],
                     };
-                    let _ = tx_tokens.send(response);
+                    let result = tx_tokens.send(response);
+                    if result.is_err() {
+                        println!("Error sending response: {:?}", result.err());
+                        return;
+                    }
                 })),
             );
+            if result.is_err() {
+                println!("Error inferring: {:?}", result.err());
+                return;
+            }
 
             // 发送结束信号
             let _ = tx.send(StreamChatCompletionResponse {
