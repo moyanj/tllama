@@ -44,7 +44,7 @@ jobs:
           # --- Windows ---
           - target: x86_64-pc-windows-msvc
             os: windows-latest
-            runner: cargo-zigbuild
+            runner: cargo
             ext: ".exe"
             base_name: tlama-x86_64-win-msvc
 
@@ -77,11 +77,6 @@ jobs:
         with:
           tool: cross
 
-      - name: Install cargo-zigbuild
-        if: matrix.runner == 'cargo-zigbuild'
-        run: |
-          cargo install cargo-zigbuild
-
       - name: Build Binary (with variant)
         run: |
           # 构造输出文件名
@@ -98,7 +93,7 @@ jobs:
               --release \
               ${{ matrix.variants.args }}
           else
-            cargo zigbuild \
+            cargo build \
               --target ${{ matrix.target }} \
               --release \
               ${{ matrix.variants.args }}
