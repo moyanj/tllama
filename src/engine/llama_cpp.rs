@@ -29,10 +29,6 @@ impl LlamaEngine {
         args: &EngineConfig,
         model_info: &Model,
     ) -> Result<Self, Box<dyn std::error::Error>> {
-        llama_cpp_2::send_logs_to_tracing(
-            llama_cpp_2::LogOptions::default().with_logs_enabled(false),
-        );
-        //let backend = LlamaBackend::init()?;
         let model_params = LlamaModelParams::default();
         let model =
             LlamaModel::load_from_file(&LLAMA_BACKEND, &model_info.model_path, &model_params)?;

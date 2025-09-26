@@ -260,6 +260,7 @@ impl ChatSession {
 }
 
 pub fn chat_session(args: crate::cli::ChatArgs) -> Result<(), Box<dyn std::error::Error>> {
+    llama_cpp_2::send_logs_to_tracing(llama_cpp_2::LogOptions::default().with_logs_enabled(false));
     let model_path;
     if args.model.starts_with('.') || args.model.starts_with('/') {
         model_path = Model::from_path(&args.model)

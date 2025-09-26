@@ -5,6 +5,7 @@ use rllama::discover;
 use rllama::discover::Model;
 use rllama::engine::{EngineConfig, InferenceEngine, llama_cpp::LlamaEngine};
 use std::io::Write;
+use tracing_subscriber::EnvFilter;
 
 async fn serve(args: &cli::ServeArgs) -> Result<(), Box<dyn std::error::Error>> {
     // The server now starts with an empty model pool.
@@ -14,6 +15,7 @@ async fn serve(args: &cli::ServeArgs) -> Result<(), Box<dyn std::error::Error>> 
 }
 
 fn infer(args: &cli::InferArgs) -> Result<(), Box<dyn std::error::Error>> {
+    llama_cpp_2::send_logs_to_tracing(llama_cpp_2::LogOptions::default().with_logs_enabled(false));
     let prompt = args.prompt.clone();
 
     let model_path;
@@ -90,6 +92,10 @@ fn list_models() -> Result<(), Box<dyn std::error::Error>> {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    tracing_subscriber::fmt()
+        .with_env_filter(EnvFilter::from_default_env())
+        .init();
+
     let args = cli::Cli::parse();
     match args.command {
         cli::Commands::Infer(args) => {

@@ -44,3 +44,5 @@ tokio-stream = { version = "0.1.17", optional = true }
 async-trait = "0.1.89"
 anyhow = "1.0.100"
 uuid = { version = "1.18.1", features = ["v4"], optional = true }
+tracing = "0.1.41"
+tracing-subscriber = { version = "0.3.20", features = ["env-filter"] }
