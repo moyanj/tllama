@@ -8,9 +8,10 @@ name = "rllama"
 path = "src/lib.rs"
 
 [features]
-default = ["tpl-gotpl", "engine-llama-cpp", "api", "chat"]
+default = ["tpl-gtmpl", "engine-llama-cpp", "api", "chat"]
 tpl-gotpl = ["gotpl"]
 tpl-minijinja = ["minijinja"]
+tpl-gtmpl = ["gtmpl"]
 hw-native = ["llama-cpp-2/native"]
 hw-cuda = ["llama-cpp-2/cuda"]
 hw-metal = ["llama-cpp-2/metal"]
@@ -18,11 +19,12 @@ hw-vulkan = ["llama-cpp-2/vulkan"]
 engine-llama-cpp = ["llama-cpp-2"]
 engine-hf = ["pyo3"]
 chat = ["rustyline", "colored", "ctrlc"]
-api = ["actix-web", "tokio-stream"]
+api = ["actix-web", "tokio-stream", "uuid"]
 
 [dependencies]
 clap = { version = "4.5.47", features = ["derive", "env"] }
 gotpl = { version = "0.2.3", optional = true }
+gtmpl = { git = "https://github.com/moyanj/gtmpl-fork", optional = true }
 lazy_static = "1.5.0"
 llama-cpp-2 = { version = "0.1.121", default-features = false, features = [
     "openmp",
@@ -41,4 +43,4 @@ actix-web = { version = "4.11.0", optional = true }
 tokio-stream = { version = "0.1.17", optional = true }
 async-trait = "0.1.89"
 anyhow = "1.0.100"
-uuid = { version = "1.18.1", features = ["v4"] }
+uuid = { version = "1.18.1", features = ["v4"], optional = true }

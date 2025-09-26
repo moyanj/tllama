@@ -26,7 +26,7 @@ fn infer(args: &cli::InferArgs) -> Result<(), Box<dyn std::error::Error>> {
             .find_model(&args.model)?;
     }
     //exit(1);
-    let mut engine = LlamaEngine::new(
+    let engine = LlamaEngine::new(
         &EngineConfig {
             n_ctx: args.n_ctx.unwrap_or(2048),
             n_len: args.n_len.unwrap_or(2048),

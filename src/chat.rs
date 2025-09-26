@@ -206,15 +206,12 @@ impl ChatSession {
             role: "user".to_string(),
             content: Some(user_input.to_string()),
             tool_calls: None,
+            name: None,
         });
 
-        let prompt_data = PromptData {
-            system: Some(self.system_prompt.clone()),
-            tools: None,
-            messages: Some(self.data.clone()),
-            prompt: None,
-            response: None,
-        };
+        let prompt_data = TemplateData::new()
+            .with_system(Some(self.system_prompt.clone()))
+            .with_messages(Some(self.data.clone()));
 
         let prompt = render_chatml_template(&prompt_data)?;
 
@@ -256,6 +253,7 @@ impl ChatSession {
             role: "assistant".to_string(),
             content: Some(result?),
             tool_calls: None,
+            name: None,
         });
         Ok(())
     }

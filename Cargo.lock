@@ -847,6 +847,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "gtmpl"
+version = "0.7.1"
+source = "git+https://github.com/moyanj/gtmpl-fork#e24c1966d152897631d44217edfefd4f80431c97"
+dependencies = [
+ "anyhow",
+ "gtmpl_value",
+ "lazy_static",
+ "percent-encoding",
+ "thiserror 1.0.69",
+]
+
+[[package]]
+name = "gtmpl_value"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1d61bf6605eabca491ef6db6ed194e0aa82900ccc8bdea4c56ac277102152dd5"
+dependencies = [
+ "anyhow",
+ "thiserror 1.0.69",
+]
+
+[[package]]
 name = "h2"
 version = "0.3.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1599,6 +1621,7 @@ dependencies = [
  "ctrlc",
  "dirs",
  "gotpl",
+ "gtmpl",
  "lazy_static",
  "llama-cpp-2",
  "minijinja",

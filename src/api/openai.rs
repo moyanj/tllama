@@ -367,6 +367,7 @@ pub async fn create_chat_completion(
             role: msg.role.clone(),
             content: Some(msg.content.clone()),
             tool_calls: None,
+            name: None,
         })
         .collect();
 
@@ -394,13 +395,10 @@ pub async fn create_chat_completion(
     };
 
     // 渲染聊天模板
-    let prompt = match crate::template::render_chatml_template(&crate::template::PromptData {
-        system: None,
-        messages: Some(messages),
-        tools: None,
-        prompt: None,
-        response: None,
-    }) {
+    /*
+    let prompt = match crate::template::render_chatml_template(
+        &crate::template::TemplateData::new().with_messages(Some(messages)),
+    ) {
         Ok(prompt) => prompt,
         Err(e) => {
             return Ok(HttpResponse::BadRequest().json(ErrorResponse {
@@ -411,7 +409,11 @@ pub async fn create_chat_completion(
                 },
             }));
         }
-    };
+    };*/
+    let prompt = crate::template::render_chatml_template(
+        &crate::template::TemplateData::new().with_messages(Some(messages)),
+    )
+    .unwrap();
 
     if stream_requested {
         let (tx, rx) = tokio::sync::mpsc::unbounded_channel::<StreamChatCompletionResponse>();

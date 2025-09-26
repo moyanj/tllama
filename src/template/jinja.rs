@@ -1,4 +1,4 @@
-use super::PromptData;
+use super::TemplateData;
 use minijinja::Environment;
 
 const CHATML_TEMPLATE: &str = r#"{%- if Messages %}
@@ -52,13 +52,13 @@ For each function call, return a json object with function name and arguments wi
 {% endif %}{{ Response }}{% if Response %}<|im_end|>{{ endif }}
 "#;
 
-pub fn render_chatml_template(data: &PromptData) -> Result<String, Box<dyn std::error::Error>> {
+pub fn render_chatml_template(data: &TemplateData) -> Result<String, Box<dyn std::error::Error>> {
     render_any_template(CHATML_TEMPLATE, data)
 }
 
 pub fn render_any_template(
     template: &str,
-    data: &PromptData,
+    data: &TemplateData,
 ) -> Result<String, Box<dyn std::error::Error>> {
     let mut env = Environment::new();
     env.add_template("any", template)?;

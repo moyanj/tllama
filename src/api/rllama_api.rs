@@ -211,13 +211,9 @@ pub async fn chat(
         repeat_penalty: args.repeat_penalty.unwrap_or(1.1),
     };
 
-    let prompt = crate::template::render_chatml_template(&crate::template::PromptData {
-        system: None,
-        messages: Some(args.messages.clone()),
-        tools: None,
-        prompt: None,
-        response: None,
-    })?;
+    let prompt = crate::template::render_chatml_template(
+        &crate::template::TemplateData::new().with_messages(Some(args.messages.clone())),
+    )?;
 
     common_inference(model_name, prompt, data, stream_requested, engine_config).await
 }
