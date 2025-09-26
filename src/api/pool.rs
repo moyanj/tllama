@@ -53,7 +53,7 @@ impl ModelPool {
         // 定义用于加载模型的默认 EngineConfig。
         let engine_config = EngineConfig {
             n_ctx: 2048,
-            n_len: 2048, // 假设这是一个合理的默认值，或者根据实际情况调整
+            n_len: None, // 假设这是一个合理的默认值，或者根据实际情况调整
             temperature: 0.8,
             top_k: 40,
             top_p: 0.9,

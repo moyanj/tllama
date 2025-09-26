@@ -215,7 +215,7 @@ pub async fn create_completion(
     // 转换参数到引擎配置
     let engine_config = EngineConfig {
         n_ctx: 2048, // 默认上下文长度
-        n_len: request.max_tokens.unwrap_or(512),
+        n_len: request.max_tokens,
         temperature: request.temperature.unwrap_or(1.0),
         top_k: 40, // OpenAI 使用 top_p，但我们保留 top_k 作为默认
         top_p: request.top_p.unwrap_or(1.0),
@@ -374,7 +374,7 @@ pub async fn create_chat_completion(
     // 转换参数到引擎配置
     let engine_config = EngineConfig {
         n_ctx: 2048,
-        n_len: request.max_tokens.unwrap_or(2048),
+        n_len: request.max_tokens,
         temperature: request.temperature.unwrap_or(0.8),
         top_k: 40,
         top_p: request.top_p.unwrap_or(1.9),

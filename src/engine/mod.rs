@@ -21,7 +21,7 @@ macro_rules! def_callback {
 #[derive(Clone, Debug)]
 pub struct EngineConfig {
     pub n_ctx: i32,
-    pub n_len: u32,
+    pub n_len: Option<u32>,
     pub temperature: f32,
     pub top_k: i32,
     pub top_p: f32,

@@ -31,7 +31,7 @@ fn infer(args: &cli::InferArgs) -> Result<(), Box<dyn std::error::Error>> {
     let engine = LlamaEngine::new(
         &EngineConfig {
             n_ctx: args.n_ctx.unwrap_or(2048),
-            n_len: args.n_len.unwrap_or(2048),
+            n_len: args.n_len,
             temperature: args.temperature.unwrap_or(0.8),
             top_k: args.top_k.unwrap_or(40),
             top_p: args.top_p.unwrap_or(0.9), // 修改默认值为0.9

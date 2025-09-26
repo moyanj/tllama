@@ -85,7 +85,7 @@ impl InferenceEngine for LlamaEngine {
         let mut n_decode = 0;
         let mut output = String::new();
         // 主生成循环
-        while n_cur < args.n_ctx && n_decode < args.n_len as i32 {
+        while n_cur < args.n_ctx && n_decode < args.n_len.unwrap_or(4294967295) as i32 {
             // 采样下一个token
             let token = sampler.sample(&ctx, batch.n_tokens() - 1);
             // 检查是否是EOS
