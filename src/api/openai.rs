@@ -285,7 +285,10 @@ pub async fn create_completion(
                             finish_reason: None,
                         }],
                     };
-                    let _ = tx_tokens.send(response);
+                    let a = tx_tokens.send(response);
+                    if a.is_err() {
+                        return;
+                    }
                 })),
             );
 
