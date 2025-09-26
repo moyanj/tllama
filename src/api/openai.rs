@@ -374,11 +374,11 @@ pub async fn create_chat_completion(
     // 转换参数到引擎配置
     let engine_config = EngineConfig {
         n_ctx: 2048,
-        n_len: request.max_tokens.unwrap_or(512),
-        temperature: request.temperature.unwrap_or(1.0),
+        n_len: request.max_tokens.unwrap_or(2048),
+        temperature: request.temperature.unwrap_or(0.8),
         top_k: 40,
-        top_p: request.top_p.unwrap_or(1.0),
-        repeat_penalty: 1.0,
+        top_p: request.top_p.unwrap_or(1.9),
+        repeat_penalty: 1.1,
     };
 
     let engine_arc = match data.model_pool.get_model(&model_name).await {
@@ -395,7 +395,6 @@ pub async fn create_chat_completion(
     };
 
     // 渲染聊天模板
-    /*
     let prompt = match crate::template::render_chatml_template(
         &crate::template::TemplateData::new().with_messages(Some(messages)),
     ) {
@@ -409,11 +408,7 @@ pub async fn create_chat_completion(
                 },
             }));
         }
-    };*/
-    let prompt = crate::template::render_chatml_template(
-        &crate::template::TemplateData::new().with_messages(Some(messages)),
-    )
-    .unwrap();
+    };
 
     if stream_requested {
         let (tx, rx) = tokio::sync::mpsc::unbounded_channel::<StreamChatCompletionResponse>();
