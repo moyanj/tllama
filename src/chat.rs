@@ -10,7 +10,7 @@ use std::time::Duration;
 
 use crate::discover::Model;
 use crate::{
-    engine::{EngineConfig, InferenceEngine},
+    engine::{EngineBackend, EngineConfig},
     template::*,
 };
 
@@ -67,13 +67,13 @@ impl Spinner {
 // --- 模块结束 ---
 
 struct ChatSession {
-    engine: Box<dyn InferenceEngine>,
+    engine: Box<dyn EngineBackend>,
     data: Vec<Message>,
     system_prompt: String,
 }
 
 impl ChatSession {
-    fn new(engine: Box<dyn InferenceEngine>) -> Self {
+    fn new(engine: Box<dyn EngineBackend>) -> Self {
         Self {
             engine,
             data: vec![],
@@ -146,6 +146,10 @@ impl ChatSession {
                     }
                 }
             }
+            /*
+            ".set" => {
+                let parts: Vec<&str> = command.trim().splitn(2, ' ').collect();
+            }*/
             _ => {
                 println!("{}'{}'", "Unknown command: ".red(), command);
             }

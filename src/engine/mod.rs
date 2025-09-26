@@ -1,7 +1,7 @@
 use crate::discover::Model;
 use anyhow::Result;
 
-pub trait InferenceEngine: Send + Sync {
+pub trait EngineBackend: Send + Sync {
     fn infer(
         &self,
         prompt: &str,
@@ -27,6 +27,10 @@ pub struct EngineConfig {
     pub top_p: f32,
     pub repeat_penalty: f32,
 }
+
+pub mod adapter;
+
+pub use adapter::InferenceEngine;
 
 #[cfg(feature = "engine-llama-cpp")]
 pub mod llama_cpp;

@@ -1,5 +1,5 @@
 use crate::discover::Model;
-use crate::engine::{EngineConfig, InferenceEngine};
+use crate::engine::{EngineBackend, EngineConfig, InferenceEngine};
 use anyhow::Result;
 use lazy_static::lazy_static;
 use llama_cpp_2::context::params::LlamaContextParams;
@@ -42,7 +42,7 @@ impl LlamaEngine {
     }
 }
 
-impl InferenceEngine for LlamaEngine {
+impl EngineBackend for LlamaEngine {
     fn get_model_info(&self) -> Model {
         self.model_info.clone()
     }

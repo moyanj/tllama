@@ -3,7 +3,7 @@ use rllama::cli;
 use rllama::def_callback;
 use rllama::discover;
 use rllama::discover::Model;
-use rllama::engine::{EngineConfig, InferenceEngine, llama_cpp::LlamaEngine};
+use rllama::engine::{EngineConfig, EngineBackend, llama_cpp::LlamaEngine};
 use std::io::Write;
 use tracing_subscriber::EnvFilter;
 

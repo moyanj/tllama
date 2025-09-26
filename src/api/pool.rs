@@ -7,7 +7,7 @@ use crate::{
 };
 
 pub struct ModelPool {
-    models: Mutex<HashMap<String, Arc<dyn InferenceEngine + Send>>>,
+    models: Mutex<HashMap<String, Arc<InferenceEngine>>>,
 }
 
 impl ModelPool {
@@ -20,7 +20,7 @@ impl ModelPool {
     pub async fn get_model(
         &self,
         model_name: &str,
-    ) -> Result<Arc<dyn InferenceEngine + Send>, Box<dyn Error>> {
+    ) -> Result<Arc<InferenceEngine>, Box<dyn Error>> {
         // 1. 尝试从池中获取模型，如果存在则直接返回
         {
             let models_guard = self.models.lock().await; // 异步锁
@@ -61,20 +61,21 @@ impl ModelPool {
         };
 
         // 加载 LlamaEngine。这是一个可能耗时的操作。
-        let concrete_engine = crate::engine::llama_cpp::LlamaEngine::new(&engine_config, &model)
-            .map_err(|e| -> Box<dyn Error> {
+        let concrete_engine = crate::engine::InferenceEngine::new(&engine_config, &model).map_err(
+            |e| -> Box<dyn Error> {
                 Box::new(std::io::Error::new(
                     std::io::ErrorKind::Other,
                     format!("Failed to load model '{}': {}", model_name, e),
                 )) as Box<dyn Error>
-            })?;
+            },
+        )?;
 
         llama_cpp_2::send_logs_to_tracing(
             llama_cpp_2::LogOptions::default().with_logs_enabled(true),
         );
 
         // 将加载的引擎封装在 tokio::sync::Mutex 中，然后再封装在 Arc 中
-        let new_engine_arc: Arc<dyn InferenceEngine + Send> = Arc::new(concrete_engine);
+        let new_engine_arc: Arc<InferenceEngine> = Arc::new(concrete_engine);
 
         // 3. 将新加载的模型添加到池中
         let mut models_guard = self.models.lock().await; // 重新获取锁以修改 HashMap
