@@ -1,6 +1,12 @@
 [package]
 name = "tlama"
 version = "0.1.0"
+description = "Lightweight Local LLM Inference Engine"
+authors = ["moyan <moyan@moyanjdc.top>"]
+repository = "https://github.com/moyanj/tlama"
+documentation = "https://docs.rs/crate/tlama"
+readme = "README.md"
+include = ["Cargo.toml", "src/**/*.rs", "README.md", "LICENSE"]
 edition = "2024"
 
 [lib]
@@ -11,7 +17,7 @@ path = "src/lib.rs"
 default = ["tpl-gtmpl", "engine-llama-cpp", "api", "chat"]
 tpl-gotpl = ["gotpl"]
 tpl-minijinja = ["minijinja"]
-tpl-gtmpl = ["gtmpl"]
+tpl-gtmpl = ["gtmpl-moyan"]
 hw-native = ["llama-cpp-2/native"]
 hw-cuda = ["llama-cpp-2/cuda"]
 hw-metal = ["llama-cpp-2/metal"]
@@ -24,7 +30,7 @@ api = ["actix-web", "tokio-stream", "uuid"]
 [dependencies]
 clap = { version = "4.5.47", features = ["derive", "env"] }
 gotpl = { version = "0.2.3", optional = true }
-gtmpl = { git = "https://github.com/moyanj/gtmpl-fork", optional = true }
+gtmpl-moyan = { version = "0.7.1", optional = true }
 lazy_static = "1.5.0"
 llama-cpp-2 = { version = "0.1.121", default-features = false, features = [
     "openmp",

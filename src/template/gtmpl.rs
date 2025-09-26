@@ -1,7 +1,7 @@
 use super::TemplateData;
-use gtmpl;
+use gtmpl_moyan;
 
-use gtmpl::Value;
+use gtmpl_moyan::Value;
 use serde::Serialize;
 use std::collections::HashMap;
 
@@ -109,6 +109,6 @@ pub fn render_any_template(
     if data_clone.response.is_none() {
         data_clone.response = Some("".to_string());
     }
-    let rendered = gtmpl::template(template, from_serde(data_clone)?)?;
+    let rendered = gtmpl_moyan::template(template, from_serde(data_clone)?)?;
     Ok(rendered)
 }

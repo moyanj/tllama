@@ -847,9 +847,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "gtmpl"
+name = "gtmpl-moyan"
 version = "0.7.1"
-source = "git+https://github.com/moyanj/gtmpl-fork#e24c1966d152897631d44217edfefd4f80431c97"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "10f2ce1b46676a99c086d5e648a4d4b329c2a83efb13c9d6f877df62062b9936"
 dependencies = [
  "anyhow",
  "gtmpl_value",
@@ -1966,7 +1967,7 @@ dependencies = [
  "dirs",
  "encoding_rs",
  "gotpl",
- "gtmpl",
+ "gtmpl-moyan",
  "lazy_static",
  "llama-cpp-2",
  "minijinja",
