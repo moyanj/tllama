@@ -15,7 +15,7 @@ name = "tllama"
 path = "src/lib.rs"
 
 [features]
-default = ["tpl-gtmpl", "engine-llama-cpp", "api", "chat"]
+default = ["tpl-gtmpl", "engine-llama-cpp", "engine-hf", "api", "chat"]
 tpl-gotpl = ["gotpl"]
 tpl-minijinja = ["minijinja"]
 tpl-gtmpl = ["gtmpl-moyan"]
@@ -24,7 +24,7 @@ hw-cuda = ["llama-cpp-2/cuda"]
 hw-metal = ["llama-cpp-2/metal"]
 hw-vulkan = ["llama-cpp-2/vulkan"]
 engine-llama-cpp = ["llama-cpp-2"]
-engine-hf = ["pyo3"]
+engine-hf = ["tempfile"]
 chat = ["rustyline", "colored", "ctrlc"]
 api = ["actix-web", "tokio-stream", "uuid"]
 
@@ -39,7 +39,6 @@ llama-cpp-2 = { version = "0.1.121", default-features = false, features = [
 minijinja = { version = "0.22.0", optional = true }
 serde = { version = "1.0.225", features = ["derive"] }
 serde_json = "1.0.145"
-pyo3 = { version = "0.26.0", optional = true, features = ["auto-initialize"] }
 dirs = "6.0.0"
 walkdir = "2.5.0"
 rustyline = { version = "17.0.1", optional = true }
@@ -54,3 +53,4 @@ uuid = { version = "1.18.1", features = ["v4"], optional = true }
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.20", features = ["env-filter"] }
 encoding_rs = "0.8.35"
+tempfile = { version = "3.23.0", optional = true }

@@ -21,7 +21,7 @@ macro_rules! def_callback {
     };
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize)]
 pub struct EngineConfig {
     pub n_ctx: i32,
     pub n_len: Option<u32>,
@@ -34,6 +34,7 @@ pub struct EngineConfig {
 pub mod adapter;
 
 pub use adapter::InferenceEngine;
+use serde::Serialize;
 
 #[cfg(feature = "engine-llama-cpp")]
 pub mod llama_cpp;
