@@ -56,7 +56,7 @@ impl EngineBackend for LlamaEngine {
             .with_n_batch(2048)
             .with_n_ubatch(512)
             .with_n_threads(
-                env::var("tlama_THREADS")
+                env::var("TLLAMA_THREADS")
                     .ok()
                     .and_then(|s| s.parse::<i32>().ok())
                     .unwrap_or_else(|| {
@@ -66,7 +66,7 @@ impl EngineBackend for LlamaEngine {
                     }),
             )
             .with_n_threads_batch(
-                env::var("tlama_THREADS")
+                env::var("TLLAMA_THREADS")
                     .ok()
                     .and_then(|s| s.parse::<i32>().ok())
                     .unwrap_or_else(|| {

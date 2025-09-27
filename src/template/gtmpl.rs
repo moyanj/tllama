@@ -110,5 +110,6 @@ pub fn render_any_template(
         data_clone.response = Some("".to_string());
     }
     let rendered = gtmpl_moyan::template(template, from_serde(data_clone)?)?;
+    println!("{}", rendered);
     Ok(rendered)
 }

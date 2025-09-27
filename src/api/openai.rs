@@ -193,7 +193,7 @@ pub async fn list_models() -> ActixResult<HttpResponse> {
             id: model.model_name.clone(),
             object: "model".to_string(),
             created: UNIX_EPOCH.elapsed().unwrap().as_secs(),
-            owned_by: "tlama".to_string(),
+            owned_by: "tllama".to_string(),
         })
         .collect();
 

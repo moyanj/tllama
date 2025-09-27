@@ -1,7 +1,7 @@
-# 🧠 Tlama
+# 🧠 Tllama
 **🚀 Lightweight Local LLM Inference Engine**
 
-Tlama is a Rust-based open-source LLM engine designed for efficient local execution. It features a **command-line interface** and **OpenAI-compatible API** for seamless model interaction.
+Tllama is a Rust-based open-source LLM engine designed for efficient local execution. It features a **command-line interface** and **OpenAI-compatible API** for seamless model interaction.
 
 ---
 
@@ -16,28 +16,28 @@ Tlama is a Rust-based open-source LLM engine designed for efficient local execut
 ## 📦 Installation
 ### Script install
 ```bash
-curl -sSL https://raw.githubusercontent.com/moyanj/tlama/main/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/moyanj/tllama/main/install.sh | bash
 ```
 
 ### Cargo install
 ```bash
-cargo install tlama
+cargo install tllama
 ```
 
 ### Pre-built binaries
-Download from [Releases](https://github.com/moyanj/tlama/releases)
+Download from [Releases](https://github.com/moyanj/tllama/releases)
 
 ---
 
 ## 🧪 Usage Guide
 ### Discover models
 ```bash
-tlama discover [--all]
+tllama discover [--all]
 ```
 
 ### Text generation
 ```bash
-tlama infer <model_path> "<prompt>" \
+tllama infer <model_path> "<prompt>" \
   --n-len <tokens> \          # Output length (default: 128)
   --temperature <value> \     # Randomness (0-1)
   --top-k <value> \           # Top-k sampling
@@ -46,19 +46,19 @@ tlama infer <model_path> "<prompt>" \
 
 **Example:**
 ```bash
-tlama infer ./llama3-8b.gguf "The future of AI is" \
+tllama infer ./llama3-8b.gguf "The future of AI is" \
   --temperature 0.7 \
   --n-len 256
 ```
 
 ### Interactive chat
 ```bash
-tlama chat <model_path>
+tllama chat <model_path>
 ```
 
 ### Start API server
 ```bash
-tlama serve \
+tllama serve \
   --host 0.0.0.0 \   # Bind address (default)
   --port 8080        # Port (default)
 ```
@@ -107,8 +107,8 @@ MIT License
 ---
 
 ## 📬 Contact
-- GitHub: [moyanj/tlama](https://github.com/moyanj/tlama)
-- Issues: [Report bugs](https://github.com/moyanj/tlama/issues)
+- GitHub: [moyanj/tllama](https://github.com/moyanj/tllama)
+- Issues: [Report bugs](https://github.com/moyanj/tllama/issues)
 - Feature requests: Open discussion issue
 
 > ⭐ **Star us on GitHub to show your support!**

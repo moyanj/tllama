@@ -81,7 +81,7 @@ impl ChatSession {
 
     fn print_welcome_message(&self) {
         println!("{}", "========================================".cyan());
-        println!("{}", " Welcome to Tlama!".cyan().bold());
+        println!("{}", " Welcome to Tllama!".cyan().bold());
         println!("{}", "========================================".cyan());
         println!("Type your message and press Enter to chat with the AI.");
         println!("Type `.help` for more commands.");

@@ -1,17 +1,17 @@
 [package]
-name = "tlama"
+name = "tllama"
 version = "0.1.0"
 description = "Lightweight Local LLM Inference Engine"
 authors = ["moyan <moyan@moyanjdc.top>"]
-repository = "https://github.com/moyanj/tlama"
-documentation = "https://docs.rs/crate/tlama"
+repository = "https://github.com/moyanj/tllama"
+documentation = "https://docs.rs/crate/tllama"
 license = "MIT"
 readme = "README.md"
 include = ["Cargo.toml", "src/**/*.rs", "README.md", "LICENSE"]
 edition = "2024"
 
 [lib]
-name = "tlama"
+name = "tllama"
 path = "src/lib.rs"
 
 [features]
