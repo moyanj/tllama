@@ -28,8 +28,7 @@ pub struct LlamaEngine {
 impl EngineBackend for LlamaEngine {
     fn new(args: &EngineConfig, model_info: &Model) -> Result<Self> {
         let model_params = LlamaModelParams::default();
-        let model =
-            LlamaModel::load_from_file(&LLAMA_BACKEND, &model_info.model_path, &model_params)?;
+        let model = LlamaModel::load_from_file(&LLAMA_BACKEND, &model_info.path, &model_params)?;
 
         Ok(LlamaEngine {
             model,

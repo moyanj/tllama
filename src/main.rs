@@ -60,29 +60,26 @@ fn list_models() -> Result<(), Box<dyn std::error::Error>> {
     } else {
         println!("Discovered Models:");
         for model in models {
-            let model_type = match model.model_type {
+            let model_type = match model.format {
                 discover::ModelType::Gguf => "GGUF",
                 discover::ModelType::Safetensors => "Safetensors",
             };
 
             // 智能单位显示
-            let (size_str, unit) = if model.model_size < 1024 * 1024 * 1024 {
+            let (size_str, unit) = if model.size < 1024 * 1024 * 1024 {
                 (
-                    format!("{:.2}", model.model_size as f64 / (1024.0 * 1024.0)),
+                    format!("{:.2}", model.size as f64 / (1024.0 * 1024.0)),
                     "MB",
                 )
             } else {
                 (
-                    format!(
-                        "{:.2}",
-                        model.model_size as f64 / (1024.0 * 1024.0 * 1024.0)
-                    ),
+                    format!("{:.2}", model.size as f64 / (1024.0 * 1024.0 * 1024.0)),
                     "GB",
                 )
             };
 
-            println!("Name: {}", model.model_name);
-            println!("  Path: {}", model.model_path.display());
+            println!("Name: {}", model.name);
+            println!("  Path: {}", model.path.display());
             println!("  Type: {}", model_type);
             println!("  Size: {} {}", size_str, unit);
             println!(); // 添加空行以分隔不同模型

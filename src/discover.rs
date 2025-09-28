@@ -1,6 +1,5 @@
 use lazy_static::lazy_static;
-use serde::Deserialize;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashSet;
 use std::env;
@@ -26,21 +25,21 @@ pub enum ModelType {
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Model {
-    pub model_type: ModelType,
-    pub model_path: PathBuf,
-    pub model_name: String,
-    pub model_size: u64,
-    pub model_template: Option<String>,
+    pub format: ModelType,
+    pub path: PathBuf,
+    pub name: String,
+    pub size: u64,
+    pub template: Option<String>,
 }
 
 impl Model {
     pub fn from_path(path: &String) -> Self {
         Model {
-            model_path: PathBuf::from(path),
-            model_name: path.to_string(),
-            model_type: ModelType::Gguf,
-            model_size: 0,
-            model_template: None,
+            path: PathBuf::from(path),
+            name: path.to_string(),
+            format: ModelType::Gguf,
+            size: 0,
+            template: None,
         }
     }
 }
@@ -94,19 +93,19 @@ impl ModelDiscover {
                 println!("Checking file: {:?}", full_path);
                 if self.check_gguf_format(&full_path) {
                     self.model_list.push(Model {
-                        model_name: full_path.file_stem().unwrap().to_string_lossy().to_string(),
-                        model_type: ModelType::Gguf,
-                        model_path: path.to_path_buf(),
-                        model_size: full_path.metadata().unwrap().len(),
-                        model_template: None,
+                        name: full_path.file_stem().unwrap().to_string_lossy().to_string(),
+                        format: ModelType::Gguf,
+                        path: path.to_path_buf(),
+                        size: full_path.metadata().unwrap().len(),
+                        template: None,
                     });
                 } else if self.check_safetensors_format(&full_path) {
                     self.model_list.push(Model {
-                        model_name: full_path.file_stem().unwrap().to_string_lossy().to_string(),
-                        model_type: ModelType::Safetensors,
-                        model_path: path.to_path_buf(),
-                        model_size: full_path.metadata().unwrap().len(),
-                        model_template: None,
+                        name: full_path.file_stem().unwrap().to_string_lossy().to_string(),
+                        format: ModelType::Safetensors,
+                        path: path.to_path_buf(),
+                        size: full_path.metadata().unwrap().len(),
+                        template: None,
                     });
                 } else {
                     continue;
@@ -225,11 +224,11 @@ impl ModelDiscover {
             };
 
             let model = Model {
-                model_type: ModelType::Gguf,
-                model_path,
-                model_name,
-                model_size,
-                model_template,
+                format: ModelType::Gguf,
+                path: model_path,
+                name: model_name,
+                size: model_size,
+                template: model_template,
             };
             self.model_list.push(model);
         }
@@ -375,7 +374,7 @@ impl ModelDiscover {
 
     pub fn find_model(&self, model_name: &str) -> Result<Model, Box<dyn std::error::Error>> {
         for model in &self.model_list {
-            if model.model_name == model_name {
+            if model.name == model_name {
                 return Ok(model.clone());
             }
         }

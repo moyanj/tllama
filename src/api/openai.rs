@@ -190,7 +190,7 @@ pub async fn list_models() -> ActixResult<HttpResponse> {
     let model_data: Vec<ModelData> = models
         .iter()
         .map(|model| ModelData {
-            id: model.model_name.clone(),
+            id: model.name.clone(),
             object: "model".to_string(),
             created: UNIX_EPOCH.elapsed().unwrap().as_secs(),
             owned_by: "tllama".to_string(),

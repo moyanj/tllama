@@ -15,7 +15,7 @@ pub struct InferenceEngine {
 impl InferenceEngine {
     pub fn new(args: &EngineConfig, model: &Model) -> Result<Self, Box<dyn std::error::Error>> {
         Ok(InferenceEngine {
-            engine: match model.model_type {
+            engine: match model.format {
                 #[cfg(feature = "engine-llama-cpp")]
                 ModelType::Gguf => Box::new(LlamaEngine::new(args, model)?),
                 #[cfg(feature = "engine-hf")]

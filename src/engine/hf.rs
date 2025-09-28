@@ -183,7 +183,7 @@ impl EngineBackend for TransformersEngine {
         let args = option.unwrap_or(&self.args);
         let model_path = self
             .model_info
-            .model_path
+            .path
             .to_str()
             .ok_or_else(|| anyhow::anyhow!("模型路径包含非 UTF-8 字符"))?;
         // 获取全局 backend
