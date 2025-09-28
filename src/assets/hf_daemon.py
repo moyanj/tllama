@@ -1,17 +1,26 @@
-# llm_daemon.py
-
 from transformers import AutoModelForCausalLM, AutoTokenizer, TextIteratorStreamer
 import threading
 import json
 import sys
 from typing import Dict, Optional
 import traceback
+from dataclasses import dataclass
 
 # ==============================
 # 模型缓存类
 # ==============================
 
 stdout_lock = threading.Lock()
+
+
+@dataclass
+class Args:
+    n_ctx: int = 2048
+    n_len: Optional[int] = None
+    temperature: float = 0.7
+    top_k: int = 40
+    top_p: float = 0.9
+    repeat_penalty: float = 1.1
 
 
 class ModelCache:
@@ -47,7 +56,7 @@ class ModelCache:
 # ==============================
 
 
-def stream_generation(req_id: str, model_name: str, prompt: str, max_tokens: int):
+def stream_generation(req_id: str, model_name: str, prompt: str, args: dict):
     try:
         # 获取模型
         model_entry = ModelCache.get(model_name)
@@ -66,21 +75,23 @@ def stream_generation(req_id: str, model_name: str, prompt: str, max_tokens: int
 
         # 编码输入
         inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
-        streamer = TextIteratorStreamer(
-            tokenizer, skip_prompt=True, skip_special_tokens=True
-        )
+        streamer = TextIteratorStreamer(tokenizer, skip_prompt=True)
+
+        # 设置生成参数
+        generation_config = {
+            "max_new_tokens": args.get("n_len", 256),  # 默认值256
+            "temperature": args.get("temperature", 0.7),
+            "top_k": args.get("top_k", 40),
+            "top_p": args.get("top_p", 0.9),
+            "repetition_penalty": args.get("repeat_penalty", 1.1),
+            "do_sample": True,
+            "streamer": streamer,
+        }
 
         # 启动生成线程
         def generate():
             try:
-                model.generate(
-                    **inputs,
-                    max_new_tokens=max_tokens,
-                    streamer=streamer,
-                    do_sample=True,
-                    temperature=0.7,
-                    top_p=0.9,
-                )
+                model.generate(**inputs, **generation_config)
             except Exception as e:
                 print(f"[生成错误] {req_id}: {e}", file=sys.stderr)
             finally:
@@ -90,14 +101,14 @@ def stream_generation(req_id: str, model_name: str, prompt: str, max_tokens: int
         thread.start()
 
         # 实时发送 token
-        buffer = ""
         for new_text in streamer:
             if new_text:
-                # 尝试减少碎片（可选合并）
-                buffer += new_text
-                # 分块发送（可根据需要调整策略）
                 with stdout_lock:
-                    print(json.dumps({"req_id": req_id, "token": new_text}))
+                    print(
+                        json.dumps(
+                            {"req_id": req_id, "token": new_text}, ensure_ascii=False
+                        )
+                    )
                     sys.stdout.flush()
 
         thread.join(timeout=2)
@@ -136,7 +147,7 @@ try:
             req_id = request.get("req_id", "unknown")
             model_name = request.get("model", "Qwen/Qwen3-0.6B")
             prompt = request.get("prompt", "")
-            max_tokens = request.get("max_new_tokens", 256)
+            args = request.get("args")
 
             if not prompt:
                 with stdout_lock:
@@ -159,7 +170,7 @@ try:
                     "req_id": req_id,
                     "model_name": model_name,
                     "prompt": prompt,
-                    "max_tokens": max_tokens,
+                    "args": args,
                 },
             )
             t.start()
