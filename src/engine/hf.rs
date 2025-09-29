@@ -18,11 +18,20 @@ type ResponseCallback = Box<dyn FnMut(Value) + Send>;
 
 // ========== 全局单例 Python Backend ==========
 lazy_static! {
-    static ref PYTHON_BACKEND: Mutex<PythonBackend> = Mutex::new(PythonBackend::new().unwrap());
+    pub static ref PYTHON_BACKEND: Mutex<PythonBackend> = {
+        match PythonBackend::new() {
+            Ok(backend) => Mutex::new(backend),
+            Err(e) => {
+                eprintln!("[FATAL] Can't start Python backend:");
+                eprintln!("错误: {}", e);
+                panic!();
+            }
+        }
+    };
 }
 
 // ========== PythonBackend 结构体 ==========
-struct PythonBackend {
+pub struct PythonBackend {
     stdin: Arc<Mutex<ChildStdin>>,
     response_senders: Arc<Mutex<HashMap<String, ResponseCallback>>>,
 }
@@ -32,17 +41,33 @@ impl PythonBackend {
         // 创建临时脚本文件
         let mut tmpfile = NamedTempFile::new()?;
         write!(tmpfile, "{}", include_str!("../assets/hf_daemon.py"))?;
-        let script_path = tmpfile.into_temp_path(); // 确保文件在进程运行期间存在
+        let (_file, path) = tmpfile.keep()?;
 
-        // 启动 Python 子进程
+        // 启动 Python 子进程，同时捕获 stderr
         let mut child = Command::new("python")
-            .arg(&script_path)
+            .arg(&path)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
-            .spawn()?;
+            .stderr(Stdio::piped()) // 添加 stderr 捕获
+            .spawn()
+            .map_err(|e| {
+                anyhow::anyhow!("Failed to start Python process: {}. Make sure Python is installed and in PATH.", e)
+            })?;
 
         let stdin = Arc::new(Mutex::new(child.stdin.take().unwrap()));
         let stdout = child.stdout.take().unwrap();
+        let stderr = child.stderr.take().unwrap(); // 获取 stderr
+
+        // 启动 stderr 读取线程：实时输出 Python 错误信息
+        thread::spawn(move || {
+            let reader = BufReader::new(stderr);
+            for line in reader.lines() {
+                match line {
+                    Ok(line) => eprintln!("[Python STDERR] {}", line),
+                    Err(e) => eprintln!("[PythonBackend] Can't read stderr: {}", e),
+                }
+            }
+        });
 
         // 共享的回调映射表
         let response_senders: Arc<Mutex<HashMap<String, Box<dyn FnMut(Value) + Send + 'static>>>> =
@@ -83,11 +108,10 @@ impl PythonBackend {
                         }
                     }
                     Err(e) => {
-                        eprintln!("[PythonBackend] JSON 解析失败: {}: {}", e, line);
+                        eprintln!("[PythonBackend] JSON Parse Fault: {}: {}", e, line);
                     }
                 }
             }
-            eprintln!("[PythonBackend] stdout 流结束，读取线程退出");
         });
 
         // 启动等待线程：监控子进程退出
@@ -100,7 +124,13 @@ impl PythonBackend {
                     return;
                 }
             };
-            eprintln!("[Python] 进程已退出，状态: {}", status);
+
+            if !status.success() {
+                eprintln!("[PythonBackend] Python 进程异常退出，状态: {}", status);
+                std::process::exit(1);
+            } else {
+                eprintln!("[PythonBackend] Python 进程正常退出");
+            }
 
             // 清理所有未完成的回调
             let mut senders = match response_senders_for_wait.lock() {

@@ -93,7 +93,27 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::from_default_env())
         .init();
-
+    /*
+        tllama::engine::hf::PYTHON_BACKEND
+            .lock()?
+            .infer_with_callback(
+                "Qwen/Qwen3-0.6B",
+                "你好我是",
+                &EngineConfig {
+                    n_ctx: 1024,
+                    n_len: None,
+                    temperature: 0.7,
+                    top_k: 40,
+                    top_p: 0.9,
+                    repeat_penalty: 1.1,
+                },
+                |token| {
+                    print!("{}", token);
+                    std::io::stdout().flush().unwrap();
+                },
+            )
+            .unwrap();
+    */
     let args = cli::Cli::parse();
     match args.command {
         cli::Commands::Infer(args) => {

@@ -90,7 +90,6 @@ impl ModelDiscover {
                     }
                     Err(_) => continue,
                 }
-                println!("Checking file: {:?}", full_path);
                 if self.check_gguf_format(&full_path) {
                     self.model_list.push(Model {
                         name: full_path.file_stem().unwrap().to_string_lossy().to_string(),
