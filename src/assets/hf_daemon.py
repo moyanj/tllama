@@ -32,7 +32,7 @@ class ModelCache:
             try:
                 print(f"[加载模型] {model_name}", file=sys.stderr)
                 model = AutoModelForCausalLM.from_pretrained(
-                    model_name, device_map="auto", torch_dtype="auto"
+                    model_name, device_map="auto", dtype="auto"
                 )
                 tokenizer = AutoTokenizer.from_pretrained(model_name)
                 cls._cache[model_name] = {
@@ -79,7 +79,8 @@ def stream_generation(req_id: str, model_name: str, prompt: str, args: dict):
 
         # 设置生成参数
         generation_config = {
-            "max_new_tokens": args.get("n_len", 256),  # 默认值256
+            "max_length": args.get("n_ctx", 4096),
+            "max_new_tokens": args.get("n_len", 1e30) or 1e30,  # 默认值256
             "temperature": args.get("temperature", 0.7),
             "top_k": args.get("top_k", 40),
             "top_p": args.get("top_p", 0.9),
@@ -87,6 +88,9 @@ def stream_generation(req_id: str, model_name: str, prompt: str, args: dict):
             "do_sample": True,
             "streamer": streamer,
         }
+
+        if generation_config["max_length"] < generation_config["max_new_tokens"]:
+            del generation_config["max_new_tokens"]
 
         # 启动生成线程
         def generate():

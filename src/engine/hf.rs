@@ -96,14 +96,13 @@ impl PythonBackend {
                                     return;
                                 }
                             };
-
-                            if let Some(sender) = senders.get_mut(id) {
-                                sender(json.clone());
-                            }
-
                             // 如果是结束消息，清理回调
                             if json.get("done").is_some() {
                                 senders.remove(id);
+                                continue;
+                            }
+                            if let Some(sender) = senders.get_mut(id) {
+                                sender(json.clone());
                             }
                         }
                     }
@@ -216,13 +215,16 @@ impl EngineBackend for TransformersEngine {
             .path
             .to_str()
             .ok_or_else(|| anyhow::anyhow!("模型路径包含非 UTF-8 字符"))?;
+
         // 获取全局 backend
         let backend = PYTHON_BACKEND
             .lock()
             .map_err(|e| anyhow::anyhow!("PythonBackend 锁被污染: {:?}", e))?;
+
         // 将 callback 包装为 Arc<Mutex<Option<...>>>，以便在闭包中多次使用
         let shared_callback: Arc<Mutex<Option<Box<dyn FnMut(String) + Send>>>> =
             Arc::new(Mutex::new(callback));
+
         // 创建闭包，适配 PythonBackend 的 FnMut(Value) 接口
         let closure_callback = {
             let shared_callback = Arc::clone(&shared_callback);
@@ -234,6 +236,7 @@ impl EngineBackend for TransformersEngine {
                 }
             }
         };
+
         // 发送请求并注册回调
         let req_id = backend.infer_with_callback(model_path, prompt, args, closure_callback)?;
         Ok(req_id)
