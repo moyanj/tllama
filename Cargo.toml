@@ -7,8 +7,7 @@ repository = "https://github.com/moyanj/tllama"
 documentation = "https://docs.rs/crate/tllama"
 license = "MIT"
 readme = "README.md"
-include = ["Cargo.toml", "src/**/*", "README.md", "LICENSE"]
-exclude = [".venv/**/*"]
+include = ["Cargo.toml", "src/**/*", "/README.md", "/LICENSE"]
 edition = "2024"
 
 [lib]
