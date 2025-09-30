@@ -19,7 +19,7 @@ impl InferenceEngine {
                 #[cfg(feature = "engine-llama-cpp")]
                 ModelType::Gguf => Box::new(LlamaEngine::new(args, model)?),
                 #[cfg(feature = "engine-hf")]
-                ModelType::Safetensors => Box::new(TransformersEngine::new(args, model)?),
+                ModelType::Transformers => Box::new(TransformersEngine::new(args, model)?),
                 #[allow(unreachable_patterns)]
                 _ => {
                     panic!("Unsupported model type")

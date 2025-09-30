@@ -21,7 +21,7 @@ lazy_static! {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ModelType {
     Gguf,
-    Safetensors,
+    Transformers,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Model {
@@ -101,7 +101,7 @@ impl ModelDiscover {
                 } else if self.check_safetensors_format(&full_path) {
                     self.model_list.push(Model {
                         name: full_path.file_stem().unwrap().to_string_lossy().to_string(),
-                        format: ModelType::Safetensors,
+                        format: ModelType::Transformers,
                         path: path.to_path_buf(),
                         size: full_path.metadata().unwrap().len(),
                         template: None,

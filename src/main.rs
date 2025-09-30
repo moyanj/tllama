@@ -62,7 +62,7 @@ fn list_models() -> Result<(), Box<dyn std::error::Error>> {
         for model in models {
             let model_type = match model.format {
                 discover::ModelType::Gguf => "GGUF",
-                discover::ModelType::Safetensors => "Safetensors",
+                discover::ModelType::Transformers => "Safetensors",
             };
 
             // 智能单位显示
@@ -82,7 +82,7 @@ fn list_models() -> Result<(), Box<dyn std::error::Error>> {
             println!("  Path: {}", model.path.display());
             println!("  Type: {}", model_type);
             println!("  Size: {} {}", size_str, unit);
-            println!(); // 添加空行以分隔不同模型
+            println!();
         }
     }
     Ok(())
@@ -94,37 +94,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_env_filter(EnvFilter::from_default_env())
         .init();
 
-    tllama::engine::hf::PYTHON_BACKEND
-        .lock()?
-        .infer_with_callback(
-            "Qwen/Qwen3-0.6B",
-            "你好我是",
-            &EngineConfig {
-                n_ctx: 1024,
-                n_len: None,
-                temperature: 0.7,
-                top_k: 40,
-                top_p: 0.9,
-                repeat_penalty: 1.1,
-            },
-            |token| {
-                print!("{}", token["token"].as_str().unwrap_or("<unk>").to_string());
-                std::io::stdout().flush().unwrap();
-            },
-        )
-        .unwrap();
-
     let args = cli::Cli::parse();
     match args.command {
         cli::Commands::Infer(args) => {
             infer(&args)?;
         }
         cli::Commands::Discover(args) => {
-            discover::MODEL_DISCOVERER
-                .lock()
-                .unwrap()
-                .scan_all_paths(args.all);
-            discover::MODEL_DISCOVERER.lock().unwrap().discover();
+            let discoverer_result = discover::MODEL_DISCOVERER.lock();
+            let mut discoverer = match discoverer_result {
+                Ok(discoverer) => discoverer,
+                Err(err) => {
+                    eprintln!("Error: {}", err);
+                    return Ok(());
+                }
+            };
+            discoverer.scan_all_paths(args.all);
+            discoverer.discover();
         }
         cli::Commands::List => {
             list_models()?;
