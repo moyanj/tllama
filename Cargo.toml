@@ -1,6 +1,6 @@
 [package]
 name = "tllama"
-version = "0.1.1"
+version = "0.2.0"
 description = "Lightweight Local LLM Inference Engine"
 authors = ["moyan <moyan@moyanjdc.top>"]
 repository = "https://github.com/moyanj/tllama"
@@ -36,15 +36,15 @@ chat = ["rustyline", "colored", "ctrlc"]
 api = ["actix-web", "tokio-stream", "uuid"]
 
 [dependencies]
-clap = { version = "4.5.47", features = ["derive", "env"] }
+clap = { version = "4.5.48", features = ["derive", "env"] }
 gotpl = { version = "0.2.3", optional = true }
 gtmpl-moyan = { version = "0.7.1", optional = true }
 lazy_static = "1.5.0"
-llama-cpp-2 = { version = "0.1.121", default-features = false, features = [
+llama-cpp-2 = { version = "^0.1.122", default-features = false, features = [
     "openmp",
 ], optional = true }
 minijinja = { version = "0.22.0", optional = true }
-serde = { version = "1.0.225", features = ["derive"] }
+serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.145"
 dirs = "6.0.0"
 walkdir = "2.5.0"
