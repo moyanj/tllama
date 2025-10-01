@@ -46,9 +46,10 @@ impl PythonBackend {
         // 启动 Python 子进程，同时捕获 stderr
         let mut child = Command::new("python")
             .arg(&path)
+            .env("TLLAMA_DAEMON", "1")
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
-            .stderr(Stdio::piped()) // 添加 stderr 捕获
+            .stderr(Stdio::piped())
             .spawn()
             .map_err(|e| {
                 anyhow::anyhow!("Failed to start Python process: {}. Make sure Python is installed and in PATH.", e)
@@ -96,13 +97,12 @@ impl PythonBackend {
                                     return;
                                 }
                             };
+                            if let Some(sender) = senders.get_mut(id) {
+                                sender(json.clone());
+                            }
                             // 如果是结束消息，清理回调
                             if json.get("done").is_some() {
                                 senders.remove(id);
-                                continue;
-                            }
-                            if let Some(sender) = senders.get_mut(id) {
-                                sender(json.clone());
                             }
                         }
                     }
@@ -187,6 +187,126 @@ impl PythonBackend {
 
         Ok(req_id)
     }
+
+    pub fn load_model(&self, model: &str) -> Result<()> {
+        let req_id = Uuid::new_v4().to_string();
+        let request = json!({
+            "req_id": req_id,
+            "cmd": "load",
+            "model": model,
+        });
+
+        // 创建同步信号
+        let loaded = Arc::new(Mutex::new(false));
+        let loaded_clone = Arc::clone(&loaded);
+
+        // 注册临时回调，等待加载完成
+        {
+            let mut senders = self
+                .response_senders
+                .lock()
+                .map_err(|e| anyhow::anyhow!("锁冲突: {:?}", e))?;
+            senders.insert(
+                req_id.clone(),
+                Box::new(move |json: Value| {
+                    if json.get("loaded").is_some() || json.get("error").is_some() {
+                        let mut loaded = loaded_clone.lock().unwrap();
+                        *loaded = true;
+                    }
+                }),
+            );
+        }
+
+        // 发送请求
+        {
+            let mut stdin = self
+                .stdin
+                .lock()
+                .map_err(|e| anyhow::anyhow!("stdin 锁失败: {:?}", e))?;
+            writeln!(stdin, "{}", serde_json::to_string(&request)?)?;
+            stdin.flush()?; // 关键：必须 flush
+        }
+
+        // 等待加载完成
+        loop {
+            thread::sleep(std::time::Duration::from_millis(10));
+            let loaded = loaded.lock().unwrap();
+            if *loaded {
+                break;
+            }
+        }
+
+        Ok(())
+    }
+
+    pub fn unload_model(&self, model: &str) -> Result<()> {
+        let req_id = Uuid::new_v4().to_string();
+        let request = json!({
+            "req_id": req_id,
+            "cmd": "unload",
+            "model": model,
+        });
+
+        // 创建同步信号
+        let unloaded = Arc::new(Mutex::new(false));
+        let unloaded_clone = Arc::clone(&unloaded);
+
+        // 注册临时回调，等待卸载完成
+        {
+            let mut senders = self
+                .response_senders
+                .lock()
+                .map_err(|e| anyhow::anyhow!("锁冲突: {:?}", e))?;
+            senders.insert(
+                req_id.clone(),
+                Box::new(move |json: Value| {
+                    if json.get("unloaded").is_some() || json.get("error").is_some() {
+                        let mut unloaded = unloaded_clone.lock().unwrap();
+                        *unloaded = true;
+                    }
+                }),
+            );
+        }
+
+        // 发送请求
+        {
+            let mut stdin = self
+                .stdin
+                .lock()
+                .map_err(|e| anyhow::anyhow!("stdin 锁失败: {:?}", e))?;
+            writeln!(stdin, "{}", serde_json::to_string(&request)?)?;
+            stdin.flush()?; // 关键：必须 flush
+        }
+
+        // 等待卸载完成
+        loop {
+            thread::sleep(std::time::Duration::from_millis(10));
+            let unloaded = unloaded.lock().unwrap();
+            if *unloaded {
+                break;
+            }
+        }
+
+        Ok(())
+    }
+}
+
+impl Drop for PythonBackend {
+    fn drop(&mut self) {
+        let request = json!({
+            "req_id": "__exit__",
+            "cmd": "exit",
+        });
+        {
+            let mut stdin = self
+                .stdin
+                .lock()
+                .map_err(|e| anyhow::anyhow!("stdin 锁失败: {:?}", e))
+                .unwrap();
+            writeln!(stdin, "{}", serde_json::to_string(&request).unwrap()).unwrap();
+            let _ = stdin.flush(); // 关键：必须 flush
+        }
+    }
 }
 
 // ========== TransformersEngine 实现 ==========
@@ -197,6 +317,8 @@ pub struct TransformersEngine {
 
 impl EngineBackend for TransformersEngine {
     fn new(args: &EngineConfig, model_info: &Model) -> Result<Self> {
+        let backend = PYTHON_BACKEND.lock().expect("锁被污染");
+        backend.load_model(model_info.path.to_str().unwrap())?;
         Ok(Self {
             model_info: model_info.clone(),
             args: args.clone(),
@@ -221,6 +343,10 @@ impl EngineBackend for TransformersEngine {
             .lock()
             .map_err(|e| anyhow::anyhow!("PythonBackend 锁被污染: {:?}", e))?;
 
+        // 创建同步信号
+        let finished = Arc::new(Mutex::new(false));
+        let finished_clone = Arc::clone(&finished);
+
         // 将 callback 包装为 Arc<Mutex<Option<...>>>，以便在闭包中多次使用
         let shared_callback: Arc<Mutex<Option<Box<dyn FnMut(String) + Send>>>> =
             Arc::new(Mutex::new(callback));
@@ -228,7 +354,15 @@ impl EngineBackend for TransformersEngine {
         // 创建闭包，适配 PythonBackend 的 FnMut(Value) 接口
         let closure_callback = {
             let shared_callback = Arc::clone(&shared_callback);
+            let finished_clone = Arc::clone(&finished_clone);
             move |json: Value| {
+                // 检查是否完成
+                if json.get("done").is_some() || json.get("error").is_some() {
+                    let mut finished = finished_clone.lock().unwrap();
+                    *finished = true;
+                    return;
+                }
+
                 let token = json["token"].as_str().unwrap_or_default();
                 let mut guard = shared_callback.lock().unwrap();
                 if let Some(ref mut cb) = *guard {
@@ -239,10 +373,30 @@ impl EngineBackend for TransformersEngine {
 
         // 发送请求并注册回调
         let req_id = backend.infer_with_callback(model_path, prompt, args, closure_callback)?;
+
+        // 等待生成完成
+        loop {
+            thread::sleep(std::time::Duration::from_millis(10));
+            let finished = finished.lock().unwrap();
+            if *finished {
+                break;
+            }
+        }
+
         Ok(req_id)
     }
 
     fn get_model_info(&self) -> Model {
         self.model_info.clone()
+    }
+}
+
+impl Drop for TransformersEngine {
+    fn drop(&mut self) {
+        let backend = PYTHON_BACKEND
+            .lock()
+            .map_err(|e| anyhow::anyhow!("PythonBackend 锁被污染: {:?}", e))
+            .unwrap();
+        let _ = backend.unload_model(self.model_info.path.to_str().unwrap());
     }
 }
