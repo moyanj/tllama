@@ -45,6 +45,7 @@ fn infer(args: &cli::InferArgs) -> Result<(), Box<dyn std::error::Error>> {
         def_callback!(|token| {
             print!("{}", token);
             std::io::stdout().flush().unwrap();
+            true
         }),
     )?;
     println!();

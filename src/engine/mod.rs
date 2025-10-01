@@ -1,6 +1,8 @@
 use crate::discover::Model;
 use anyhow::Result;
 
+type EngineCallback = Box<dyn FnMut(String) -> bool + Send>;
+
 pub trait EngineBackend: Send + Sync {
     fn new(args: &EngineConfig, model: &Model) -> Result<Self>
     where
@@ -9,7 +11,7 @@ pub trait EngineBackend: Send + Sync {
         &self,
         prompt: &str,
         option: Option<&EngineConfig>,
-        callback: Option<Box<dyn FnMut(String) + Send>>,
+        callback: Option<EngineCallback>,
     ) -> Result<String>;
     fn get_model_info(&self) -> Model;
 }
@@ -17,7 +19,7 @@ pub trait EngineBackend: Send + Sync {
 #[macro_export]
 macro_rules! def_callback {
     (|$arg:ident| $body:block) => {
-        Some(Box::new(move |$arg: String| $body) as Box<dyn FnMut(String) + Send + 'static>)
+        Some(Box::new(move |$arg: String| $body) as Box<dyn FnMut(String) -> bool + Send + 'static>)
     };
 }
 

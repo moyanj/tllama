@@ -1,4 +1,5 @@
 use super::EngineBackend;
+use crate::engine::EngineCallback;
 use crate::{discover::Model, engine::EngineConfig};
 use anyhow::Result;
 use lazy_static::lazy_static;
@@ -329,7 +330,7 @@ impl EngineBackend for TransformersEngine {
         &self,
         prompt: &str,
         option: Option<&EngineConfig>,
-        callback: Option<Box<dyn FnMut(String) + Send>>,
+        callback: Option<EngineCallback>,
     ) -> Result<String> {
         let args = option.unwrap_or(&self.args);
         let model_path = self
@@ -348,8 +349,7 @@ impl EngineBackend for TransformersEngine {
         let finished_clone = Arc::clone(&finished);
 
         // 将 callback 包装为 Arc<Mutex<Option<...>>>，以便在闭包中多次使用
-        let shared_callback: Arc<Mutex<Option<Box<dyn FnMut(String) + Send>>>> =
-            Arc::new(Mutex::new(callback));
+        let shared_callback: Arc<Mutex<Option<EngineCallback>>> = Arc::new(Mutex::new(callback));
 
         // 创建闭包，适配 PythonBackend 的 FnMut(Value) 接口
         let closure_callback = {

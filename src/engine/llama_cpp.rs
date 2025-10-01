@@ -1,5 +1,5 @@
 use crate::discover::Model;
-use crate::engine::{EngineBackend, EngineConfig};
+use crate::engine::{EngineBackend, EngineCallback, EngineConfig};
 use anyhow::Result;
 use lazy_static::lazy_static;
 use llama_cpp_2::context::params::LlamaContextParams;
@@ -44,7 +44,7 @@ impl EngineBackend for LlamaEngine {
         &self,
         prompt: &str,
         args: Option<&EngineConfig>,
-        mut callback: Option<Box<dyn FnMut(String) + Send>>,
+        mut callback: Option<EngineCallback>,
     ) -> Result<String> {
         // 获取EngineConfig实例
         let args = args.unwrap_or(&self.args);
@@ -116,7 +116,10 @@ impl EngineBackend for LlamaEngine {
 
             // 调用回调函数处理输出
             if callback.is_some() {
-                callback.as_mut().unwrap()(token_str.clone());
+                let shoud_stop = callback.as_mut().unwrap()(token_str.clone());
+                if shoud_stop {
+                    break;
+                }
             }
 
             // 将新生成的token添加到采样器历史中

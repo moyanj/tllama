@@ -239,6 +239,7 @@ impl ChatSession {
                 // 流式打印 AI 的回复
                 print!("{}", token);
                 stdout().flush().unwrap();
+                true
             }),
         );
 

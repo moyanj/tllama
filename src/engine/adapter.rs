@@ -1,6 +1,6 @@
 use crate::{
     discover::{Model, ModelType},
-    engine::{EngineBackend, EngineConfig},
+    engine::{EngineBackend, EngineCallback, EngineConfig},
 };
 use anyhow::Result;
 
@@ -32,7 +32,7 @@ impl InferenceEngine {
         &self,
         prompt: &str,
         option: Option<&EngineConfig>,
-        callback: Option<Box<dyn FnMut(String) + Send>>,
+        callback: Option<EngineCallback>,
     ) -> Result<String> {
         self.engine.infer(prompt, option, callback)
     }

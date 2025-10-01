@@ -91,8 +91,9 @@ async fn common_inference(
                     });
                     if let Err(e) = result {
                         eprintln!("Error sending chunk: {}", e);
-                        return;
+                        return false;
                     }
+                    return true;
                 })),
             );
 

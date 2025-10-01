@@ -287,8 +287,9 @@ pub async fn create_completion(
                     };
                     let a = tx_tokens.send(response);
                     if a.is_err() {
-                        return;
+                        return false;
                     }
+                    true
                 })),
             );
 
@@ -452,8 +453,9 @@ pub async fn create_chat_completion(
                     let result = tx_tokens.send(response);
                     if result.is_err() {
                         println!("Error sending response: {:?}", result.err());
-                        return;
+                        return false;
                     }
+                    true
                 })),
             );
             if result.is_err() {
