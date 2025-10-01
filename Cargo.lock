@@ -843,9 +843,9 @@ checksum = "0cc23270f6e1808e30a928bdc84dea0b9b4136a8bc82338574f23baf47bbd280"
 
 [[package]]
 name = "gotpl"
-version = "0.2.3"
+version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1ce31f49847abdbe1c9a48de475da8d51efb60a4cc5ba2fb864dc9a512160e94"
+checksum = "981fd3d884b0031f586c0d5fbd1564e0c215f340e3c5e464fdac24230758930b"
 dependencies = [
  "bindgen",
  "serde",

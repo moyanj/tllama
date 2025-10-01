@@ -37,7 +37,7 @@ api = ["actix-web", "tokio-stream", "uuid"]
 
 [dependencies]
 clap = { version = "4.5.48", features = ["derive", "env"] }
-gotpl = { version = "0.2.4", optional = true }
+gotpl = { version = "0.2.5", optional = true }
 gtmpl-moyan = { version = "0.7.1", optional = true }
 lazy_static = "1.5.0"
 llama-cpp-2 = { version = "^0.1.122", default-features = false, features = [

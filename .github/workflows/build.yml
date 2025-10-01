@@ -9,6 +9,7 @@ on:
 jobs:
   build:
     strategy:
+      name: Build - ${{ matrix.os }} - ${{ artifact-name }}
       fail-fast: false # Don't cancel other jobs if one fails
       matrix:
         include:
@@ -30,8 +31,14 @@ jobs:
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             binary-name: tllama.exe
-            artifact-name: tllama-windows-x86_64.exe
+            artifact-name: tllama-windows-x86_64_cuda
             features: "hw-cuda,tpl-gotpl"
+
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            binary-name: tllama.exe
+            artifact-name: tllama-windows-x86_64
+            features: "tpl-gotpl"
 
           # macOS builds
           - os: macos-latest
@@ -52,7 +59,7 @@ jobs:
 
       - name: Install CUDA Toolkit
         if: contains(matrix.features, 'hw-cuda')
-        uses: Jimver/cuda-toolkit@v0.2.16
+        uses: Jimver/cuda-toolkit@v0.2.28
         with:
           cuda: "12.4.1"
 
@@ -73,6 +80,7 @@ jobs:
         run: |
           # cmake is usually pre-installed on GitHub runners
           which cmake || brew install cmake
+          which go || brew install go
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
