@@ -17,34 +17,34 @@ jobs:
             target: x86_64-unknown-linux-gnu
             binary-name: tllama
             artifact-name: tllama-linux-x86_64
-            features: ""
+            features: "tpl-gotpl"
 
           # ARM64 Linux via native GitHub ARM64 runners
           - os: ubuntu-22.04-arm
             target: aarch64-unknown-linux-gnu
             binary-name: tllama
             artifact-name: tllama-linux-arm64
-            features: ""
+            features: "tpl-gotpl"
 
           # Windows builds
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             binary-name: tllama.exe
             artifact-name: tllama-windows-x86_64.exe
-            features: "hw-cuda"
+            features: "hw-cuda,tpl-gotpl"
 
           # macOS builds
           - os: macos-latest
             target: x86_64-apple-darwin
             binary-name: tllama
             artifact-name: tllama-macos-intel
-            features: "hw-metal"
+            features: "hw-metal,tpl-gotpl"
 
           - os: macos-latest
             target: aarch64-apple-darwin
             binary-name: tllama
             artifact-name: tllama-macos-arm64
-            features: "hw-metal"
+            features: "hw-metal,tpl-gotpl"
 
     runs-on: ${{ matrix.os }}
     steps:
