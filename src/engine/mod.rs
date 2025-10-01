@@ -31,6 +31,19 @@ pub struct EngineConfig {
     pub repeat_penalty: f32,
 }
 
+impl Default for EngineConfig {
+    fn default() -> Self {
+        EngineConfig {
+            n_ctx: 4096,
+            n_len: None,
+            temperature: 0.7,
+            top_k: 40,
+            top_p: 0.9,
+            repeat_penalty: 1.1,
+        }
+    }
+}
+
 pub mod adapter;
 
 pub use adapter::InferenceEngine;

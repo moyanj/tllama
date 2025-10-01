@@ -319,7 +319,6 @@ impl ModelDiscover {
                             .filter_map(Result::ok)
                             .filter(|e| e.file_type().is_file() || e.file_type().is_symlink())
                         {
-                            println!("{}", entry.path().display());
                             if entry.file_type().is_symlink() {
                                 // 解析symlink
                                 let target = entry
@@ -449,7 +448,6 @@ impl ModelDiscover {
             }
         }
         let final_paths: Vec<PathBuf> = paths.into_iter().collect();
-        println!("Searching in: {:?}", final_paths);
         if check_existence {
             final_paths.into_iter().filter(|p| p.is_dir()).collect()
         } else {
