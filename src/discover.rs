@@ -413,14 +413,13 @@ impl ModelDiscover {
         }
 
         let mut paths = HashSet::new();
-        if let Ok(tllama_paths_str) = env::var("TLLAMA_MODEL_PATHS") {
-            for path_str in tllama_paths_str.split(',') {
-                let trimmed_path = path_str.trim();
-                if !trimmed_path.is_empty() {
-                    paths.insert(PathBuf::from(trimmed_path));
-                }
+        for path_str in &(*crate::env::TLLAMA_MODEL_PATHS) {
+            let trimmed_path = path_str.trim();
+            if !trimmed_path.is_empty() {
+                paths.insert(PathBuf::from(trimmed_path));
             }
         }
+
         paths.insert(PathBuf::from("./models"));
         let home_dir = dirs::home_dir();
         let cache_dir = dirs::cache_dir();

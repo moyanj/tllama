@@ -8,7 +8,6 @@ use llama_cpp_2::llama_batch::LlamaBatch;
 use llama_cpp_2::model::params::LlamaModelParams;
 use llama_cpp_2::model::{AddBos, LlamaModel, Special};
 use llama_cpp_2::sampling::LlamaSampler;
-use std::env;
 use std::num::NonZeroU32;
 
 lazy_static! {
@@ -54,26 +53,9 @@ impl EngineBackend for LlamaEngine {
             .with_n_ctx(Some(NonZeroU32::new(args.n_ctx as u32).unwrap()))
             .with_n_batch(2048)
             .with_n_ubatch(512)
-            .with_n_threads(
-                env::var("TLLAMA_THREADS")
-                    .ok()
-                    .and_then(|s| s.parse::<i32>().ok())
-                    .unwrap_or_else(|| {
-                        std::thread::available_parallelism()
-                            .map(|n| n.get() as i32)
-                            .unwrap_or(4)
-                    }),
-            )
-            .with_n_threads_batch(
-                env::var("TLLAMA_THREADS")
-                    .ok()
-                    .and_then(|s| s.parse::<i32>().ok())
-                    .unwrap_or_else(|| {
-                        std::thread::available_parallelism()
-                            .map(|n| n.get() as i32)
-                            .unwrap_or(4)
-                    }),
-            );
+            .with_n_threads(*crate::env::TLLAMA_THREADS)
+            .with_n_threads_batch(*crate::env::TLLAMA_THREADS)
+            .with_flash_attention(*crate::env::TLLAMA_FLASH_ATTN);
         // 创建上下文
         let mut ctx = self.model.new_context(&LLAMA_BACKEND, ctx_params)?;
         // Tokenize提示

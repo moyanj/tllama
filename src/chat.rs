@@ -222,7 +222,7 @@ impl ChatSession {
                 .get_model_info()
                 .template
                 .as_ref()
-                .unwrap_or(&"default".to_string()),
+                .unwrap_or(&get_default_template()),
             &prompt_data,
         )?;
 
@@ -284,14 +284,7 @@ pub fn chat_session(args: crate::cli::ChatArgs) -> Result<(), Box<dyn std::error
             .find_model(&args.model)?;
     }
 
-    let engine_config = EngineConfig {
-        n_ctx: 4096,
-        n_len: None,
-        temperature: 0.8,
-        top_k: 40,
-        top_p: 0.9,
-        repeat_penalty: 1.1,
-    };
+    let engine_config = EngineConfig::default();
 
     // --- 修改: 在加载模型时使用动画 ---
     // 1. 启动 spinner
