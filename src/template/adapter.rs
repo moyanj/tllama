@@ -10,7 +10,7 @@ use super::jinja::render_any_template as hf_render;
 use super::gtmpl::render_any_template as gtmpl_render;
 
 #[cfg(feature = "tpl-gotpl")]
-use super::gotpl::render_any_template as gotpl_render;
+use super::golang::render_any_template as gotpl_render;
 
 fn select_engine(model: &Model) -> RenderFunc {
     match model.format {
@@ -20,11 +20,11 @@ fn select_engine(model: &Model) -> RenderFunc {
         }
 
         ModelType::Gguf => {
-            #[cfg(feature = "tpl-gtmpl")]
-            return gtmpl_render;
-
             #[cfg(feature = "tpl-gotpl")]
             return gotpl_render;
+
+            #[cfg(feature = "tpl-gtmpl")]
+            return gtmpl_render;
 
             #[cfg(not(any(feature = "tpl-gtmpl", feature = "tpl-gotpl")))]
             compile_error!(
@@ -157,6 +157,7 @@ pub fn render_template(
     template: &str,
     data: &TemplateData,
 ) -> Result<String, Box<dyn std::error::Error>> {
+    println!("{}", template);
     let render_func = select_engine(&model);
     render_func(template, data)
 }

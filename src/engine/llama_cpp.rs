@@ -99,7 +99,7 @@ impl EngineBackend for LlamaEngine {
             // 调用回调函数处理输出
             if callback.is_some() {
                 let shoud_stop = callback.as_mut().unwrap()(token_str.clone());
-                if shoud_stop {
+                if !shoud_stop {
                     break;
                 }
             }
