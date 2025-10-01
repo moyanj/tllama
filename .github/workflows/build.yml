@@ -41,12 +41,6 @@ jobs:
 
           # macOS builds
           - os: macos-latest
-            target: x86_64-apple-darwin
-            binary-name: tllama
-            artifact-name: tllama-macos-intel
-            features: "hw-metal,tpl-gotpl"
-
-          - os: macos-latest
             target: aarch64-apple-darwin
             binary-name: tllama
             artifact-name: tllama-macos-arm64
