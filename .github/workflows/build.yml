@@ -9,7 +9,6 @@ on:
 jobs:
   build:
     strategy:
-      name: Build - ${{ matrix.os }} - ${{ artifact-name }}
       fail-fast: false # Don't cancel other jobs if one fails
       matrix:
         include:
