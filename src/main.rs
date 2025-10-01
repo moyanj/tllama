@@ -8,8 +8,6 @@ use tllama::engine::{EngineConfig, InferenceEngine};
 use tracing_subscriber::EnvFilter;
 
 async fn serve(args: &cli::ServeArgs) -> Result<(), Box<dyn std::error::Error>> {
-    // The server now starts with an empty model pool.
-    // Models are loaded dynamically via the API.
     tllama::api::start_api_server(args.host.clone(), args.port).await?;
     Ok(())
 }
@@ -28,19 +26,19 @@ fn infer(args: &cli::InferArgs) -> Result<(), Box<dyn std::error::Error>> {
             .unwrap()
             .find_model(&args.model)?;
     }
-    //exit(1);
+
     let engine = InferenceEngine::new(
         &EngineConfig {
             n_ctx: args.n_ctx.unwrap_or(4096),
             n_len: args.n_len,
             temperature: args.temperature.unwrap_or(0.8),
             top_k: args.top_k.unwrap_or(40),
-            top_p: args.top_p.unwrap_or(0.9), // 修改默认值为0.9
+            top_p: args.top_p.unwrap_or(0.9),
             repeat_penalty: args.repeat_penalty.unwrap_or(1.1),
         },
         &model_path,
     )?;
-    // 流式模式 - 逐词输出
+
     engine.infer(
         &prompt,
         None,
@@ -49,6 +47,7 @@ fn infer(args: &cli::InferArgs) -> Result<(), Box<dyn std::error::Error>> {
             std::io::stdout().flush().unwrap();
         }),
     )?;
+    println!();
     Ok(())
 }
 
@@ -62,7 +61,7 @@ fn list_models() -> Result<(), Box<dyn std::error::Error>> {
         for model in models {
             let model_type = match model.format {
                 discover::ModelType::Gguf => "GGUF",
-                discover::ModelType::Transformers => "Safetensors",
+                discover::ModelType::Transformers => "Transformers",
             };
 
             // 智能单位显示

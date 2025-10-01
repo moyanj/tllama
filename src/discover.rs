@@ -1,3 +1,4 @@
+use glob::Pattern;
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -5,8 +6,7 @@ use std::collections::HashSet;
 use std::env;
 use std::fs;
 use std::io::Read;
-use std::path::Path;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use walkdir::WalkDir;
 
@@ -60,15 +60,19 @@ impl ModelDiscover {
     pub fn scan_all_paths(&mut self, scan: bool) {
         self.scan_all_paths = scan;
     }
-
-    /// 核心方法：扫描所有已知路径并填充模型列表。
+    /// core method, scan model directory
     pub fn discover(&mut self) {
         self.model_list.clear();
         let search_paths = self.make_search_paths(true);
         for path in search_paths {
-            if path.join("blobs").is_dir() && path.join("manifests").is_dir() {
-                // Ollama 模型目录
+            if directory_has_features(&path, &["manifests", "blobs", "blobs/sha256-*"]) {
+                // Ollama Models
                 self.discover_ollama_models(&path.as_path());
+                continue;
+            }
+            if directory_has_features(&path, &["*/blobs", "*/refs", "*/snapshots"]) {
+                // HuggingFace Cached Models
+                self.discover_hf_models(&path);
                 continue;
             }
             for entry in WalkDir::new(&path)
@@ -233,6 +237,126 @@ impl ModelDiscover {
         }
     }
 
+    fn discover_hf_models(&mut self, path: &Path) {
+        for model in path.read_dir().expect("Failed to read directory") {
+            if let Ok(entry) = model {
+                let model_dir = entry.path();
+                if !entry.file_type().map_or(false, |ft| ft.is_dir())
+                    || !entry.file_name().to_string_lossy().starts_with("models--")
+                {
+                    continue;
+                }
+
+                // 检查是否包含必要的文件
+                if !directory_has_features(
+                    &model_dir,
+                    &[
+                        "snapshots/*/config.json",
+                        "snapshots/*/tokenizer_config.json",
+                    ],
+                ) {
+                    continue;
+                }
+
+                // 解析模型名称：models--owner--repo -> owner/repo
+                let file_name = entry.file_name();
+                let file_name_str = file_name.to_string_lossy();
+                let stripped = &file_name_str["models--".len()..];
+                let parts: Vec<&str> = stripped.splitn(2, "--").collect();
+                let model_name = if parts.len() == 2 {
+                    format!("{}/{}", parts[0], parts[1].replace("--", "/"))
+                } else {
+                    stripped.replace("--", "/")
+                };
+
+                // 查找 snapshot 目录下的所有快照（通常只有一个，但支持多个）
+                let snapshot_path = model_dir.join("snapshots");
+                if !snapshot_path.is_dir() {
+                    continue;
+                }
+
+                for snapshot in snapshot_path.read_dir().expect("Failed to read snapshots") {
+                    if let Ok(snapshot_entry) = snapshot {
+                        if !snapshot_entry.file_type().map_or(false, |ft| ft.is_dir()) {
+                            continue;
+                        }
+
+                        let snapshot_dir = snapshot_entry.path();
+                        let tokenizer_config_path = snapshot_dir.join("tokenizer_config.json");
+
+                        // 读取 chat template
+                        let chat_template = if tokenizer_config_path.exists() {
+                            if let Ok(content) = fs::read_to_string(&tokenizer_config_path) {
+                                if let Ok(json) = serde_json::from_str::<Value>(&content) {
+                                    json["chat_template"]
+                                        .as_str()
+                                        .map(|s| s.to_string())
+                                        .or_else(|| {
+                                            // 回退到特殊字段如 tokenizer.chat_template（罕见情况）
+                                            json.get("tokenizer")
+                                                .and_then(|t| t["chat_template"].as_str())
+                                                .map(|s| s.to_string())
+                                        })
+                                } else {
+                                    None
+                                }
+                            } else {
+                                None
+                            }
+                        } else {
+                            None
+                        };
+
+                        // 回退到默认模板
+                        let effective_template = chat_template
+                            .unwrap_or_else(|| crate::template::CHATML_TEMPLATE.to_string());
+
+                        // 统计模型文件总大小
+                        let mut total_size: u64 = 0;
+                        let mut file_count = 0;
+                        for entry in WalkDir::new(&snapshot_dir)
+                            .into_iter()
+                            .filter_map(Result::ok)
+                            .filter(|e| e.file_type().is_file() || e.file_type().is_symlink())
+                        {
+                            println!("{}", entry.path().display());
+                            if entry.file_type().is_symlink() {
+                                // 解析symlink
+                                let target = entry
+                                    .path()
+                                    .parent()
+                                    .unwrap()
+                                    .join(entry.path().read_link().unwrap());
+                                let metadata = target.metadata().unwrap();
+                                total_size += metadata.len();
+                                file_count += 1;
+                            } else if let Ok(metadata) = entry.metadata() {
+                                total_size += metadata.len();
+                                file_count += 1;
+                            }
+                        }
+
+                        // 如果没有有效文件，跳过
+                        if file_count == 0 || total_size < 50 * 1024 * 1024 {
+                            continue;
+                        }
+
+                        // 创建模型条目
+                        let model = Model {
+                            format: ModelType::Transformers,
+                            path: snapshot_dir.clone(), // 指向 snapshot 目录
+                            name: model_name.clone(),
+                            size: total_size,
+                            template: Some(effective_template),
+                        };
+
+                        self.model_list.push(model);
+                    }
+                }
+            }
+        }
+    }
+
     fn check_gguf_format(&self, path: &Path) -> bool {
         if let Ok(mut file) = fs::File::open(path) {
             let mut magic = [0u8; 4];
@@ -315,8 +439,7 @@ impl ModelDiscover {
             {
                 paths.insert(cache.join("lm-studio").join("models"));
             }
-            paths.insert(cache.join("gpt4all"));
-            #[cfg(feature = "engine-hf")]
+            //#[cfg(feature = "engine-hf")]
             {
                 let hf_home = env::var("HF_HOME")
                     .ok()
@@ -326,6 +449,7 @@ impl ModelDiscover {
             }
         }
         let final_paths: Vec<PathBuf> = paths.into_iter().collect();
+        println!("Searching in: {:?}", final_paths);
         if check_existence {
             final_paths.into_iter().filter(|p| p.is_dir()).collect()
         } else {
@@ -378,5 +502,98 @@ impl ModelDiscover {
             }
         }
         Err(format!("Model {} not found", model_name).into())
+    }
+}
+
+/// 检测目录是否拥有指定的特征
+///
+/// # 参数
+/// - `dir_path`: 要检测的目录路径
+/// - `features`: 特征列表，支持通配符和相对路径
+///
+/// # 返回值
+/// - 如果目录包含所有指定的特征返回 true，否则返回 false
+pub fn directory_has_features<P: AsRef<Path>>(dir_path: P, features: &[&str]) -> bool {
+    let dir_path = dir_path.as_ref();
+
+    if !dir_path.exists() || !dir_path.is_dir() {
+        return false;
+    }
+
+    // 检查每个特征
+    for feature in features {
+        if !check_single_feature(dir_path, feature) {
+            return false;
+        }
+    }
+
+    true
+}
+
+/// 检查单个特征
+fn check_single_feature(dir_path: &Path, feature: &str) -> bool {
+    // 如果特征包含路径分隔符，需要特殊处理
+    if feature.contains('/') || feature.contains('\\') {
+        check_path_feature(dir_path, feature)
+    } else {
+        // 简单文件名匹配
+        check_simple_feature(dir_path, feature)
+    }
+}
+
+/// 检查简单文件名特征（不包含路径）
+fn check_simple_feature(dir_path: &Path, pattern: &str) -> bool {
+    let compiled_pattern = match Pattern::new(pattern) {
+        Ok(p) => p,
+        Err(_) => return false,
+    };
+
+    // 读取目录直接匹配
+    if let Ok(entries) = fs::read_dir(dir_path) {
+        for entry in entries {
+            if let Ok(entry) = entry {
+                let file_name = entry.file_name();
+                let file_name_str = file_name.to_string_lossy();
+
+                if compiled_pattern.matches(&file_name_str) {
+                    return true;
+                }
+            }
+        }
+    }
+
+    false
+}
+
+/// 检查包含路径的特征（如 "cyv/*/a.json"）
+fn check_path_feature(dir_path: &Path, feature_pattern: &str) -> bool {
+    // 构建完整的glob模式
+    let full_pattern = if feature_pattern.starts_with('/') || feature_pattern.starts_with('\\') {
+        // 如果是绝对路径，直接使用
+        feature_pattern.to_string()
+    } else {
+        // 相对路径，基于目标目录构建完整路径
+        let dir_str = dir_path.to_string_lossy();
+        let normalized_dir = if dir_str.ends_with('/') || dir_str.ends_with('\\') {
+            dir_str.to_string()
+        } else {
+            format!("{}/", dir_str)
+        };
+        format!("{}{}", normalized_dir, feature_pattern)
+    };
+
+    // 使用glob进行匹配
+    match glob::glob(&full_pattern) {
+        Ok(paths) => {
+            for path in paths {
+                if let Ok(path) = path {
+                    if path.exists() {
+                        return true;
+                    }
+                }
+            }
+            false
+        }
+        Err(_) => false,
     }
 }

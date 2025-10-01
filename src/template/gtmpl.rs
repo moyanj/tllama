@@ -45,7 +45,7 @@ fn json_value_to_gtmpl_value(json_value: serde_json::Value) -> Result<Value, ser
     }
 }
 
-const CHATML_TEMPLATE: &str = r#"{{- if .Messages }}
+pub const CHATML_TEMPLATE: &str = r#"{{- if .Messages }}
 {{- if or .System .Tools }}<|im_start|>system
 {{- if .System }}
 {{ .System }}

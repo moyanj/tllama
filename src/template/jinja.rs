@@ -1,7 +1,7 @@
 use super::TemplateData;
 use minijinja::Environment;
 
-const CHATML_TEMPLATE: &str = r#"{%- if Messages %}
+pub const CHATML_TEMPLATE: &str = r#"{%- if Messages %}
 {%- if System or Tools %}<|im_start|>system
 {%- if System %}
 {{ System }}

@@ -14,19 +14,21 @@ Tllama is a Rust-based open-source LLM engine designed for efficient local execu
 ---
 
 ## 📦 Installation
+
+<!--
 ### Script install
 ```bash
 curl -sSL https://raw.githubusercontent.com/moyanj/tllama/main/install.sh | bash
 ```
-
+-->
 ### Cargo install
 ```bash
 cargo install tllama
 ```
-
+<!--
 ### Pre-built binaries
 Download from [Releases](https://github.com/moyanj/tllama/releases)
-
+-->
 ---
 
 ## 🧪 Usage Guide
