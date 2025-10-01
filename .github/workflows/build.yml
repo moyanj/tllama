@@ -58,10 +58,11 @@ jobs:
 
       - name: Install CUDA Toolkit
         if: contains(matrix.features, 'hw-cuda')
-        uses: Jimver/cuda-toolkit@v0.2.28
+        uses: Jimver/cuda-toolkit@v0.2.24
         with:
           cuda: "12.4.1"
           log-file-suffix: "${{matrix.os}}.txt"
+          use-github-cache: false
 
       - name: Install system dependencies (Linux)
         if: runner.os == 'Linux'
