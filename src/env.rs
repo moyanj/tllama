@@ -16,9 +16,15 @@ lazy_static! {
         .unwrap_or(vec![]);
 
     #[cfg(feature = "llama-cpp-2")]
-    pub static ref TLLAMA_FLASH_ATTN: bool = std::env::var("TLLAMA_FLASH_ATTN")
-        .map(|s| s.parse::<bool>().unwrap())
-        .unwrap_or(false);
+    pub static ref TLLAMA_FLASH_ATTN: i32 = std::env::var("TLLAMA_FLASH_ATTN")
+        .map(|s| s.parse::<i32>().unwrap())
+        .map(|s| {
+            if s < -1 || s > 1 {
+                panic!("TLLAMA_FLASH_ATTN must be -1, 0, 1");
+            }
+            s
+        })
+        .unwrap_or(-1);
 
     #[cfg(feature = "llama-cpp-2")]
     pub static ref TLLAMA_KV_CACHE_TYPE: KvCacheType =

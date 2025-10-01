@@ -55,7 +55,7 @@ impl EngineBackend for LlamaEngine {
             .with_n_ubatch(512)
             .with_n_threads(*crate::env::TLLAMA_THREADS)
             .with_n_threads_batch(*crate::env::TLLAMA_THREADS)
-            .with_flash_attention(*crate::env::TLLAMA_FLASH_ATTN);
+            .with_flash_attention_policy(*crate::env::TLLAMA_FLASH_ATTN);
         // 创建上下文
         let mut ctx = self.model.new_context(&LLAMA_BACKEND, ctx_params)?;
         // Tokenize提示
