@@ -211,8 +211,17 @@ pub async fn chat(
         top_p: args.top_p.unwrap_or(0.95),
         repeat_penalty: args.repeat_penalty.unwrap_or(1.1),
     };
-
-    let prompt = crate::template::render_chatml_template(
+    let model = MODEL_DISCOVERER
+        .lock()
+        .unwrap()
+        .find_model(&model_name)
+        .unwrap();
+    let prompt = crate::template::render_template(
+        &model,
+        model
+            .template
+            .as_ref()
+            .unwrap_or(&crate::template::get_default_template()),
         &crate::template::TemplateData::new().with_messages(Some(args.messages.clone())),
     )?;
 

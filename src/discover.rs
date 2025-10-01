@@ -309,7 +309,7 @@ impl ModelDiscover {
 
                         // 回退到默认模板
                         let effective_template = chat_template
-                            .unwrap_or_else(|| crate::template::CHATML_TEMPLATE.to_string());
+                            .unwrap_or_else(|| crate::template::get_default_template());
 
                         // 统计模型文件总大小
                         let mut total_size: u64 = 0;

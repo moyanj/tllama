@@ -1,3 +1,5 @@
+pub mod adapter;
+
 #[cfg(feature = "tpl-gotpl")]
 pub mod golang;
 #[cfg(feature = "tpl-gtmpl")]
@@ -5,12 +7,7 @@ pub mod gtmpl;
 #[cfg(feature = "tpl-minijinja")]
 pub mod jinja;
 
-#[cfg(feature = "tpl-gotpl")]
-pub use golang::*;
-#[cfg(feature = "tpl-gtmpl")]
-pub use gtmpl::*;
-#[cfg(feature = "tpl-minijinja")]
-pub use jinja::*;
+pub use adapter::*;
 
 #[cfg(not(any(
     feature = "tpl-gotpl",
@@ -24,6 +21,8 @@ compile_error!(
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
+
+type RenderFunc = fn(&str, &TemplateData) -> Result<String, Box<dyn std::error::Error>>;
 
 // 工具属性定义
 #[derive(Serialize, Deserialize, Debug, Clone)]

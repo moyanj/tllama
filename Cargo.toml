@@ -15,7 +15,14 @@ name = "tllama"
 path = "src/lib.rs"
 
 [features]
-default = ["tpl-gtmpl", "engine-llama-cpp", "engine-hf", "api", "chat"]
+default = [
+    "tpl-gtmpl",
+    "tpl-minijinja",
+    "engine-llama-cpp",
+    "engine-hf",
+    "api",
+    "chat",
+]
 tpl-gotpl = ["gotpl"]
 tpl-minijinja = ["minijinja"]
 tpl-gtmpl = ["gtmpl-moyan"]

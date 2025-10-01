@@ -399,7 +399,12 @@ pub async fn create_chat_completion(
     };
 
     // 渲染聊天模板
-    let prompt = match crate::template::render_chatml_template(
+    let prompt = match crate::template::render_template(
+        &engine_arc.get_model_info(),
+        &engine_arc
+            .get_model_info()
+            .template
+            .unwrap_or(crate::template::get_default_template()),
         &crate::template::TemplateData::new().with_messages(Some(messages)),
     ) {
         Ok(prompt) => prompt,

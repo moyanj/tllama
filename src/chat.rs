@@ -215,7 +215,16 @@ impl ChatSession {
             .with_system(Some(self.system_prompt.clone()))
             .with_messages(Some(self.data.clone()));
 
-        let prompt = render_chatml_template(&prompt_data)?;
+        let prompt = render_template(
+            &self.engine.get_model_info(),
+            &self
+                .engine
+                .get_model_info()
+                .template
+                .as_ref()
+                .unwrap_or(&"default".to_string()),
+            &prompt_data,
+        )?;
 
         // --- 修改: 在AI响应前启动动画 ---
         // 将 Spinner 包装在 Option 中，以便在闭包内安全地 `.take()` 和消耗它。
