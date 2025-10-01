@@ -157,7 +157,21 @@ pub fn render_template(
     template: &str,
     data: &TemplateData,
 ) -> Result<String, Box<dyn std::error::Error>> {
-    println!("{}", template);
-    let render_func = select_engine(&model);
-    render_func(template, data)
+    let render_func = select_engine(model);
+    // 第一次：尝试使用传入的 template
+    match render_func(template, data) {
+        Ok(result) => return Ok(result),
+        Err(err) => {
+            eprintln!("WARN: Failed to render template: {}", err);
+            eprintln!(
+                "Hint: Consider enabling the `tpl-gotpl` feature to get better compatibility."
+            );
+        }
+    }
+    // 第二次：使用默认模板重试
+    let default_template = get_default_template();
+    match render_func(&default_template, data) {
+        Ok(result) => Ok(result),
+        Err(err) => Err(err),
+    }
 }
