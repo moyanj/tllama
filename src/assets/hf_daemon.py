@@ -32,6 +32,24 @@ class Args:
     repeat_penalty: float = 1.1
 
 
+class ModelState:
+    def __init__(self):
+        self._state = {}
+        self._lock = threading.Lock()
+
+    def start(self, model_name: str):
+        with self._lock:
+            self._state[model_name] = True
+
+    def stop(self, model_name: str):
+        with self._lock:
+            del self._state[model_name]
+
+    def is_running(self, model_name: str) -> bool:
+        with self._lock:
+            return self._state.get(model_name, False)
+
+
 class ModelCache:
     _cache: Dict[str, Dict] = {}
 
@@ -58,6 +76,21 @@ class ModelCache:
             del cls._cache[model_name]
 
 
+class Streamer(TextIteratorStreamer):
+    def set_id(self, id):
+        self.id = id
+
+    def __next__(self):
+        value = self.text_queue.get(timeout=self.timeout)
+        if value == self.stop_signal or model_state.is_running(self.id) == False:
+            raise StopIteration()
+        else:
+            return value
+
+
+model_state = ModelState()
+model_cache = ModelCache()
+
 # ==============================
 # 流式生成函数（每个请求一个线程）
 # ==============================
@@ -66,7 +99,7 @@ class ModelCache:
 def stream_generation(req_id: str, model_name: str, prompt: str, args: dict):
     try:
         # 获取模型
-        model_entry = ModelCache.get(model_name)
+        model_entry = model_cache.get(model_name)
         if not model_entry:
             with stdout_lock:
                 print(
@@ -76,15 +109,14 @@ def stream_generation(req_id: str, model_name: str, prompt: str, args: dict):
                 )
                 sys.stdout.flush()
             return
-
+        model_state.start(req_id)
         model = model_entry["model"]
         tokenizer = model_entry["tokenizer"]
 
         # 编码输入
         inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
-        streamer = TextIteratorStreamer(
-            tokenizer, skip_prompt=True, skip_special_tokens=True
-        )
+        streamer = Streamer(tokenizer, skip_prompt=True, skip_special_tokens=True)
+        streamer.set_id(req_id)
 
         # 设置生成参数
         generation_config = {
@@ -109,7 +141,7 @@ def stream_generation(req_id: str, model_name: str, prompt: str, args: dict):
                 log(f"[生成错误] {req_id}: {e}")
             finally:
                 streamer.end()  # 必须调用
-            return
+                model_state.stop(model_name)
 
         thread = threading.Thread(target=generate)
         thread.start()
@@ -204,10 +236,7 @@ try:
                 if model_name in ModelCache._cache:
                     # 尝试清理显存
                     ModelCache.remove(model_name)
-                    # 释放缓存
-                    import torch
 
-                    torch.cuda.empty_cache()
                     with stdout_lock:
                         print(
                             json.dumps(
@@ -233,6 +262,11 @@ try:
                         )
                         sys.stdout.flush()
                 continue
+            elif cmd == "stop":
+                req_id = request.get("req_id")
+                if not req_id:
+                    print(json.dumps({"req_id": req_id, "error": "Missing 'req_id'"}))
+
             elif cmd == "exit":
                 sys.exit(0)
             # 如果不是命令，则视为生成请求

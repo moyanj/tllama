@@ -290,6 +290,24 @@ impl PythonBackend {
 
         Ok(())
     }
+
+    pub fn stop_session(&self, req_id: String) -> Result<()> {
+        let request = json!({
+            "req_id": req_id,
+            "cmd": "stop",
+        });
+
+        {
+            let mut stdin = self
+                .stdin
+                .lock()
+                .map_err(|e| anyhow::anyhow!("stdin 锁失败: {:?}", e))?;
+            writeln!(stdin, "{}", serde_json::to_string(&request)?)?;
+            stdin.flush()?; // 关键：必须 flush
+        }
+
+        Ok(())
+    }
 }
 
 impl Drop for PythonBackend {
@@ -346,15 +364,18 @@ impl EngineBackend for TransformersEngine {
 
         // 创建同步信号
         let finished = Arc::new(Mutex::new(false));
-        let finished_clone = Arc::clone(&finished);
 
         // 将 callback 包装为 Arc<Mutex<Option<...>>>，以便在闭包中多次使用
         let shared_callback: Arc<Mutex<Option<EngineCallback>>> = Arc::new(Mutex::new(callback));
 
+        // 提前声明 req_id 并初始化为占位符
+        let mut req_id = String::new();
+
         // 创建闭包，适配 PythonBackend 的 FnMut(Value) 接口
+        // 此时 req_id 已在作用域内，闭包会将其捕获
         let closure_callback = {
             let shared_callback = Arc::clone(&shared_callback);
-            let finished_clone = Arc::clone(&finished_clone);
+            let finished_clone = Arc::clone(&finished);
             move |json: Value| {
                 // 检查是否完成
                 if json.get("done").is_some() || json.get("error").is_some() {
@@ -366,13 +387,19 @@ impl EngineBackend for TransformersEngine {
                 let token = json["token"].as_str().unwrap_or_default();
                 let mut guard = shared_callback.lock().unwrap();
                 if let Some(ref mut cb) = *guard {
-                    cb(token.to_string());
+                    // 使用已捕获的 req_id 变量
+                    if !cb(token.to_string()) {
+                        let current_req_id = req_id.clone(); // 复制当前值
+                        if !current_req_id.is_empty() {
+                            let _ = PYTHON_BACKEND.lock().unwrap().stop_session(current_req_id);
+                        }
+                    }
                 }
             }
         };
 
-        // 发送请求并注册回调
-        let req_id = backend.infer_with_callback(model_path, prompt, args, closure_callback)?;
+        // 发送请求并注册回调，现在 req_id 在闭包之后被赋值
+        req_id = backend.infer_with_callback(model_path, prompt, args, closure_callback)?;
 
         // 等待生成完成
         loop {
