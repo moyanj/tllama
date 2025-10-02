@@ -31,13 +31,13 @@ jobs:
             target: x86_64-pc-windows-msvc
             binary-name: tllama.exe
             artifact-name: tllama-windows-x86_64_cuda
-            features: "hw-cuda,tpl-gotpl"
+            features: "hw-cuda"
 
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             binary-name: tllama.exe
             artifact-name: tllama-windows-x86_64
-            features: "tpl-gotpl"
+            features: "chat"
 
           # macOS builds
           - os: macos-latest

@@ -34,7 +34,7 @@ hw-vulkan = ["llama-cpp-2/vulkan"]
 engine-llama-cpp = ["llama-cpp-2"]
 engine-hf = ["tempfile"]
 chat = ["rustyline", "colored", "ctrlc"]
-rpc = []
+rpc = ["reqwest"]
 api = ["actix-web", "tokio-stream", "uuid"]
 
 [dependencies]
@@ -63,6 +63,7 @@ tracing-subscriber = { version = "0.3.20", features = ["env-filter"] }
 encoding_rs = "0.8.35"
 tempfile = { version = "3.23.0", optional = true }
 glob = "0.3.3"
+reqwest = { version = "0.12.23", features = ["blocking"], optional = true }
 
 
 [profile.release]

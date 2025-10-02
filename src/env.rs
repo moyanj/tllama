@@ -64,6 +64,12 @@ lazy_static! {
             _ => KvCacheType::F16
         }).unwrap_or(KvCacheType::F16);
 
+        #[cfg(feature = "rpc")]
         pub static ref TLLAMA_RPC_HOST: String = std::env::var("TLLAMA_RPC_HOST")
         .unwrap_or("http://127.0.0.1:12186".to_string());
+
+        #[cfg(feature = "rpc")]
+        pub static ref TLLAMA_RPC: bool = std::env::var("TLLAMA_RPC")
+        .map(|s| s == "1")
+        .unwrap_or(false);
 }

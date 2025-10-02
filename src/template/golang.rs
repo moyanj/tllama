@@ -1,6 +1,9 @@
 use super::TemplateData;
 use gotpl;
 
+#[cfg(target_os = "windows")]
+compile_error!("Windows is not supported GoTpl yet.");
+
 pub fn render_any_template(
     template: &str,
     data: &TemplateData,
