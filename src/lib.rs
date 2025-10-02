@@ -6,4 +6,6 @@ pub mod cli;
 pub mod discover;
 pub mod engine;
 pub mod env;
+#[cfg(feature = "rpc")]
+pub mod rpc;
 pub mod template;

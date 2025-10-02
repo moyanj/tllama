@@ -63,4 +63,7 @@ lazy_static! {
             "mxfp4" => KvCacheType::MXFP4,
             _ => KvCacheType::F16
         }).unwrap_or(KvCacheType::F16);
+
+        pub static ref TLLAMA_RPC_HOST: String = std::env::var("TLLAMA_RPC_HOST")
+        .unwrap_or("http://127.0.0.1:12186".to_string());
 }

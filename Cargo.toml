@@ -22,6 +22,7 @@ default = [
     "engine-hf",
     "api",
     "chat",
+    "rpc",
 ]
 tpl-gotpl = ["gotpl"]
 tpl-minijinja = ["minijinja"]
@@ -33,6 +34,7 @@ hw-vulkan = ["llama-cpp-2/vulkan"]
 engine-llama-cpp = ["llama-cpp-2"]
 engine-hf = ["tempfile"]
 chat = ["rustyline", "colored", "ctrlc"]
+rpc = []
 api = ["actix-web", "tokio-stream", "uuid"]
 
 [dependencies]
@@ -64,7 +66,5 @@ glob = "0.3.3"
 
 
 [profile.release]
-lto = true
-codegen-units = 1
 debug = false
 strip = true

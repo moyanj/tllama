@@ -63,6 +63,6 @@ pub struct ChatArgs {
 pub struct ServeArgs {
     #[arg(long, default_value = "0.0.0.0")]
     pub host: String,
-    #[arg(short, long, default_value_t = 8080)]
+    #[arg(short, long, default_value_t = 12186)]
     pub port: u16,
 }
